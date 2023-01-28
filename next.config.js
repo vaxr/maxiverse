@@ -9,7 +9,7 @@ const contentSecurityPolicy = `
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: blob:;
     font-src 'self';
-    connect-src 'self' labs.phaser.io;
+    connect-src 'self' https://labs.phaser.io;
 `
 
 
