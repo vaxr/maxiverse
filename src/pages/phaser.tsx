@@ -1,12 +1,12 @@
 import Head from 'next/head'
 import styles from '@/styles/Home.module.css'
 import React, {useEffect, useRef, useState} from "react";
-import {Game as GameType} from 'phaser'
-import {initPhaser} from "@/pages/game/phaser";
+import {Game} from 'phaser'
+import {initPhaser} from "@/phaser";
 
 
-export default function Game() {
-    const [game, setGame] = useState<GameType>();
+export default function Phaser() {
+    const [game, setGame] = useState<Game>();
     const initCalledRef = useRef(false);
 
     useEffect(() => {
@@ -20,7 +20,7 @@ export default function Game() {
             })()
             initCalledRef.current = true
         }
-    }, []);
+    }, [game]);
 
     return (
         <>
@@ -31,7 +31,7 @@ export default function Game() {
                 <link rel="icon" href="/favicon.ico"/>
             </Head>
             <main className={styles.main}>
-                <div id="game-canvas" key="game-canvas"/>
+                <div id="phaser-canvas" key="phaser-canvas"/>
             </main>
         </>
     )

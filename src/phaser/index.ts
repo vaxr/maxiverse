@@ -7,7 +7,7 @@ export const initPhaser = async () => {
     return new Phaser.Game({
         type: Phaser.AUTO,
         title: 'Maxiverse',
-        parent: 'game-canvas',
+        parent: 'phaser-canvas',
         width: 800,
         height: 600,
         pixelArt: true,
@@ -22,7 +22,7 @@ export const initPhaser = async () => {
         physics: {
             default: 'arcade',
             arcade: {
-                gravity: { y: 200 }
+                gravity: {y: 200}
             }
         },
     });
