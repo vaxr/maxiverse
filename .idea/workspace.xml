@@ -4,7 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="28b6dad8-7ea7-46c4-9925-d0938a94c1d5" name="Changes" comment="Ignore IDE" />
+    <list default="true" id="28b6dad8-7ea7-46c4-9925-d0938a94c1d5" name="Changes" comment="Ignore IDE">
+      <change afterPath="$PROJECT_DIR$/src/pages/game/index.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/pages/game/phaser.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/pages/game/scenes/hello.tsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/pages/game/scenes/preloader.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -26,7 +34,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
-    "last_opened_file_path": "/home/vaxr/code/maxiverse",
+    "last_opened_file_path": "/home/vaxr/code/futile-kingdoms",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -35,6 +43,11 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/pages/game" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="dev" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
@@ -61,7 +74,7 @@
       <option name="presentableId" value="Default" />
       <updated>1674848220322</updated>
       <workItem from="1674848221366" duration="640000" />
-      <workItem from="1674855955509" duration="1295000" />
+      <workItem from="1674855955509" duration="8925000" />
     </task>
     <task id="LOCAL-00001" summary="Ignore IDE">
       <created>1674856648287</created>
