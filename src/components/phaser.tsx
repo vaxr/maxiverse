@@ -1,11 +1,8 @@
-import Head from 'next/head'
-import styles from '@/styles/Home.module.css'
 import React, {useEffect, useRef, useState} from "react";
-import {Game} from 'phaser'
+import {Game} from "phaser";
 import {initPhaser} from "@/phaser";
 
-
-export default function Phaser() {
+export default function PhaserCanvas() {
     const [game, setGame] = useState<Game>();
     const initCalledRef = useRef(false);
 
@@ -22,17 +19,5 @@ export default function Phaser() {
         }
     }, [game]);
 
-    return (
-        <>
-            <Head>
-                <title>Maxiverse</title>
-                <meta name="description" content="SuiMax Maxiverse Client"/>
-                <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <link rel="icon" href="/favicon.ico"/>
-            </Head>
-            <main className={styles.main}>
-                <div id="phaser-canvas" key="phaser-canvas"/>
-            </main>
-        </>
-    )
+    return <div id="phaser-canvas" key="phaser-canvas"/>
 }
