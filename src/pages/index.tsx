@@ -7,7 +7,7 @@ export default function Home() {
     return (
         <>
             <Head>
-                <title>Maxiverse</title>
+                <title>Suimax Maxiverse</title>
                 <meta name="description" content="SuiMax Maxiverse Client"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
                 <link rel="icon" href="/favicon.ico"/>
