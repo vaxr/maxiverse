@@ -3,13 +3,14 @@ export const initPhaser = async () => {
     // TODO import more phaser dependencies here
     const {default: Preloader} = await import('./scenes/preloader')
     const {default: HelloScene} = await import('./scenes/hello')
+    const {default: DemoScene} = await import('./scenes/demo')
 
     return new Phaser.Game({
         type: Phaser.AUTO,
         title: 'Maxiverse',
         parent: 'phaser-canvas',
-        width: 800,
-        height: 600,
+        width: 768,
+        height: 512,
         pixelArt: true,
         scale: {
             zoom: 1, // TODO set to 2
@@ -17,6 +18,7 @@ export const initPhaser = async () => {
         scene: [
             Preloader,
             HelloScene,
+            DemoScene,
         ],
         // TODO remove physics if unnecessary
         physics: {

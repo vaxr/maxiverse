@@ -11,6 +11,6 @@ export default class Preloader extends Scene {
 
     create() {
         console.log('Preloader created.')
-        this.scene.start('hello')
+        this.scene.start('demo')
     }
 }
