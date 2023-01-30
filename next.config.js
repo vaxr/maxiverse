@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 
-// TODO remove phaser.io
 // TODO deal with unsafe- policies
 // TODO CSF concept
 const contentSecurityPolicy = `
@@ -9,7 +8,7 @@ const contentSecurityPolicy = `
     style-src 'self' 'unsafe-inline';
     img-src 'self' data: blob:;
     font-src 'self';
-    connect-src 'self' https://labs.phaser.io;
+    connect-src 'self';
 `
 
 
