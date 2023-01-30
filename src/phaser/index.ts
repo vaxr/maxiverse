@@ -25,5 +25,9 @@ export const initPhaser = async () => {
                 gravity: {y: 200}
             }
         },
+        fps: {
+            target: 60,
+            forceSetTimeOut: true
+        },
     });
 }
