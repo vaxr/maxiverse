@@ -3,12 +3,14 @@ import {LdtkRoot} from "@/core/ldtk";
 import Sprite = Phaser.GameObjects.Sprite;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
 
+type Direction = 'left' | 'right' | 'up' | 'down'
+
 export default class DemoScene extends Scene {
 
     cursors?: CursorKeys
     player?: {
         sprite: Sprite
-        dir: string
+        dir: Direction
         walking: boolean
     }
 
@@ -61,6 +63,12 @@ export default class DemoScene extends Scene {
 
     update(time: number, delta: number) {
         super.update(time, delta);
+
+        const pxPerMs = 4 * 32 / 1000 // TODO implement running
+        if (this.player?.walking) {
+            this.walkPlayer(pxPerMs * delta)
+        }
+
         if (this.cursors?.down.isDown) {
             this.updatePlayerAnim(true, 'down')
         } else if (this.cursors?.up.isDown) {
@@ -74,11 +82,28 @@ export default class DemoScene extends Scene {
         }
     }
 
-    private updatePlayerAnim(walking: boolean, dir?: string) {
+    private updatePlayerAnim(walking: boolean, dir?: Direction) {
         if (walking != this.player?.walking || dir && dir != this.player.dir) {
             this.player!.walking = walking
             this.player!.dir = dir || this.player!.dir
             this.player!.sprite.play(`0_${this.player?.walking ? 'walk' : 'idle'}-${this.player?.dir}`)
+        }
+    }
+
+    private walkPlayer(px: number) {
+        switch (this.player!.dir) {
+            case 'down':
+                this.player!.sprite.y += px
+                break;
+            case 'up':
+                this.player!.sprite.y -= px
+                break;
+            case 'right':
+                this.player!.sprite.x += px
+                break;
+            case 'left':
+                this.player!.sprite.x -= px
+                break;
         }
     }
 
