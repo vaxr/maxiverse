@@ -4,6 +4,7 @@ import Sprite = Phaser.GameObjects.Sprite;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
 
 type Direction = 'left' | 'right' | 'up' | 'down'
+type XY = { x: number, y: number }
 
 export default class DemoScene extends Scene {
 
@@ -12,6 +13,7 @@ export default class DemoScene extends Scene {
         sprite: Sprite
         dir: Direction
         walking: boolean
+        speed: XY
     }
 
     constructor() {
@@ -58,6 +60,7 @@ export default class DemoScene extends Scene {
             sprite: this.addSprite(0, 5, 6),
             dir: 'down',
             walking: false,
+            speed: {x: 0, y: 0}
         }
     }
 
@@ -65,46 +68,57 @@ export default class DemoScene extends Scene {
         super.update(time, delta);
 
         const pxPerMs = 4 * 32 / 1000 // TODO implement running
-        if (this.player?.walking) {
-            this.walkPlayer(pxPerMs * delta)
-        }
-
+        const totalSpeed = pxPerMs * delta
+        const speed = {x: 0, y: 0}
         if (this.cursors?.down.isDown) {
-            this.updatePlayerAnim(true, 'down')
-        } else if (this.cursors?.up.isDown) {
-            this.updatePlayerAnim(true, 'up')
-        } else if (this.cursors?.right.isDown) {
-            this.updatePlayerAnim(true, 'right')
-        } else if (this.cursors?.left.isDown) {
-            this.updatePlayerAnim(true, 'left')
-        } else if (this.player?.walking) {
-            this.updatePlayerAnim(false)
+            speed.y += totalSpeed
+        }
+        if (this.cursors?.up.isDown) {
+            speed.y -= totalSpeed
+        }
+        if (this.cursors?.right.isDown) {
+            speed.x += totalSpeed
+        }
+        if (this.cursors?.left.isDown) {
+            speed.x -= totalSpeed
+        }
+        if (speed.x != 0 && speed.y != 0) {
+            speed.x *= Math.sqrt(0.5)
+            speed.y *= Math.sqrt(0.5)
+        }
+        this.updatePlayerSpeed(speed)
+        this.walkPlayer()
+    }
+
+    private getAnimForSpeed(i: number, speed: XY, defaultDir: Direction = 'down') {
+        const type = speed.x != 0 || speed.y != 0 ? 'walk' : 'idle'
+        const dir = this.getXYDir(speed) || defaultDir
+        return `${i}_${type}-${dir}`
+    }
+
+    private getXYDir(xy: XY): Direction | undefined {
+        if (xy.x == 0 && xy.y == 0) return undefined
+        if (Math.abs(xy.x) > Math.abs(xy.y)) {
+            if (xy.x > 0) return 'right'
+            return 'left'
+        }
+        if (xy.y > 0) return 'down'
+        return 'up'
+    }
+
+    private updatePlayerSpeed(speed: XY) {
+        if (speed != this.player!.speed) {
+            const anim = this.getAnimForSpeed(0, speed, this.player!.dir)
+            if (anim != this.getAnimForSpeed(0, this.player!.speed, this.player!.dir)) {
+                this.player?.sprite.play(anim)
+            }
+            this.player!.speed = speed
         }
     }
 
-    private updatePlayerAnim(walking: boolean, dir?: Direction) {
-        if (walking != this.player?.walking || dir && dir != this.player.dir) {
-            this.player!.walking = walking
-            this.player!.dir = dir || this.player!.dir
-            this.player!.sprite.play(`0_${this.player?.walking ? 'walk' : 'idle'}-${this.player?.dir}`)
-        }
-    }
-
-    private walkPlayer(px: number) {
-        switch (this.player!.dir) {
-            case 'down':
-                this.player!.sprite.y += px
-                break;
-            case 'up':
-                this.player!.sprite.y -= px
-                break;
-            case 'right':
-                this.player!.sprite.x += px
-                break;
-            case 'left':
-                this.player!.sprite.x -= px
-                break;
-        }
+    private walkPlayer() {
+        this.player!.sprite.x += this.player!.speed.x
+        this.player!.sprite.y += this.player!.speed.y
     }
 
     private addLdtkLayer(map: Phaser.Tilemaps.Tilemap, ldtk: LdtkRoot, name: string) {
