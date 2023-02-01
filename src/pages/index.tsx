@@ -14,6 +14,7 @@ export default function Home() {
             </Head>
             <main className={styles.main}>
                 <PhaserCanvas/>
+                <p><b>Walk:</b> Arrow keys, <b>Run:</b> Shift</p>
             </main>
         </>
     )
