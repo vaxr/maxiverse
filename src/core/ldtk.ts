@@ -1,3 +1,5 @@
+import {arrayToMatrix} from "@/core/util";
+
 class LDTK {
     json: any
 
@@ -51,5 +53,9 @@ export class LdtkLayerInstance extends LDTK {
             result[col][row] = tile.t
         }
         return result
+    }
+
+    public get intGridCsv(): number[][] {
+        return arrayToMatrix(this.json['intGridCsv'], this.width)
     }
 }

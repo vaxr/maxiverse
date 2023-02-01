@@ -15,6 +15,7 @@ export default class DemoScene extends Scene {
         walking: boolean
         speed: XY
     }
+    walkable: boolean[][]
 
     constructor() {
         super('demo');
@@ -50,10 +51,14 @@ export default class DemoScene extends Scene {
         this.addLdtkLayer(map, ldtk, 'bg1')
         this.addLdtkLayer(map, ldtk, 'bg2')
 
+        this.walkable = ldtk.level(0).layer('collision').intGridCsv.map((row) => {
+            return row.map((tile) => tile == 1)
+        })
+
         this.addAnimations()
-        this.addSprite(1, 3, 3).play('1_idle-down')
-        this.addSprite(2, 9, 7).play('2_idle-up')
-        this.addSprite(3, 2, 3).play('3_idle-down')
+        this.addSprite(1, 3, 4).play('1_idle-down')
+        this.addSprite(2, 9, 8).play('2_idle-up')
+        this.addSprite(3, 2, 4).play('3_idle-down')
 
         this.cursors = this.input.keyboard.createCursorKeys()
         this.player = {
@@ -117,8 +122,21 @@ export default class DemoScene extends Scene {
     }
 
     private walkPlayer() {
-        this.player!.sprite.x += this.player!.speed.x
-        this.player!.sprite.y += this.player!.speed.y
+        const targetPx = {
+            x: this.player!.sprite.x + this.player!.speed.x,
+            y: this.player!.sprite.y + this.player!.speed.y,
+        }
+        const targetTile = {
+            x: Math.floor(targetPx.x / 32),
+            y: Math.floor(targetPx.y / 32),
+        }
+        // TODO handle multiple tiles
+        if (this.walkable[targetTile.y][targetTile.x]) {
+            this.player!.sprite.x = targetPx.x
+            this.player!.sprite.y = targetPx.y
+        } else {
+            // TODO walk closest possible
+        }
     }
 
     private addLdtkLayer(map: Phaser.Tilemaps.Tilemap, ldtk: LdtkRoot, name: string) {
@@ -157,6 +175,7 @@ export default class DemoScene extends Scene {
     private addSprite(i: number, x: number, y: number): Sprite {
         const sprite = this.add.sprite(16 + 32 * x, 32 * y - 6, DemoScene.SpriteSheets[0]).setScale(0.75, 0.75)
         sprite.play(`${i}_idle-down`)
+        sprite.setOrigin(0.5, 0.95)
         return sprite
     }
 }
