@@ -2,6 +2,7 @@ import {Scene} from 'phaser';
 import {LdtkRoot} from "@/core/ldtk";
 import Sprite = Phaser.GameObjects.Sprite;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
+import {bresenhamLineOnGrid} from "@/core/util";
 
 type Direction = 'left' | 'right' | 'up' | 'down'
 type XY = { x: number, y: number }
@@ -15,7 +16,7 @@ export default class DemoScene extends Scene {
         walking: boolean
         speed: XY
     }
-    walkable: boolean[][]
+    walkable?: boolean[][]
 
     constructor() {
         super('demo');
@@ -118,6 +119,7 @@ export default class DemoScene extends Scene {
                 this.player?.sprite.play(anim)
             }
             this.player!.speed = speed
+            this.player!.dir = this.getXYDir(speed) || this.player!.dir
         }
     }
 
@@ -131,9 +133,21 @@ export default class DemoScene extends Scene {
             y: Math.floor(targetPx.y / 32),
         }
         // TODO handle multiple tiles
-        if (this.walkable[targetTile.y][targetTile.x]) {
+        if (this.walkable![targetTile.y][targetTile.x]) {
             this.player!.sprite.x = targetPx.x
             this.player!.sprite.y = targetPx.y
+            if (!this.walkable![targetTile.y][targetTile.x-1]) {
+                this.player!.sprite.x = Math.max(this.player!.sprite.x, targetTile.x * 32 + 16)
+            }
+            if (!this.walkable![targetTile.y][targetTile.x+1]) {
+                this.player!.sprite.x = Math.min(this.player!.sprite.x, targetTile.x * 32 + 16)
+            }
+            if (!this.walkable![targetTile.y-1][targetTile.x]) {
+                this.player!.sprite.y = Math.max(this.player!.sprite.y, targetTile.y * 32 + 16)
+            }
+            if (!this.walkable![targetTile.y+1][targetTile.x]) {
+                this.player!.sprite.y = Math.min(this.player!.sprite.y, targetTile.y * 32 + 16)
+            }
         } else {
             // TODO walk closest possible
         }
@@ -175,7 +189,7 @@ export default class DemoScene extends Scene {
     private addSprite(i: number, x: number, y: number): Sprite {
         const sprite = this.add.sprite(16 + 32 * x, 32 * y - 6, DemoScene.SpriteSheets[0]).setScale(0.75, 0.75)
         sprite.play(`${i}_idle-down`)
-        sprite.setOrigin(0.5, 0.95)
+        sprite.setOrigin(0.5, 0.90)
         return sprite
     }
 }
