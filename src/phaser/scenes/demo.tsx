@@ -2,7 +2,6 @@ import {Scene} from 'phaser';
 import {LdtkRoot} from "@/core/ldtk";
 import Sprite = Phaser.GameObjects.Sprite;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
-import {bresenhamLineOnGrid} from "@/core/util";
 import Key = Phaser.Input.Keyboard.Key;
 
 type Direction = 'left' | 'right' | 'up' | 'down'
@@ -139,16 +138,16 @@ export default class DemoScene extends Scene {
         if (this.walkable![targetTile.y][targetTile.x]) {
             this.player!.sprite.x = targetPx.x
             this.player!.sprite.y = targetPx.y
-            if (!this.walkable![targetTile.y][targetTile.x-1]) {
+            if (!this.walkable![targetTile.y][targetTile.x - 1]) {
                 this.player!.sprite.x = Math.max(this.player!.sprite.x, targetTile.x * 32 + 16)
             }
-            if (!this.walkable![targetTile.y][targetTile.x+1]) {
+            if (!this.walkable![targetTile.y][targetTile.x + 1]) {
                 this.player!.sprite.x = Math.min(this.player!.sprite.x, targetTile.x * 32 + 16)
             }
-            if (!this.walkable![targetTile.y-1][targetTile.x]) {
+            if (!this.walkable![targetTile.y - 1][targetTile.x]) {
                 this.player!.sprite.y = Math.max(this.player!.sprite.y, targetTile.y * 32 + 8)
             }
-            if (!this.walkable![targetTile.y+1][targetTile.x]) {
+            if (!this.walkable![targetTile.y + 1][targetTile.x]) {
                 this.player!.sprite.y = Math.min(this.player!.sprite.y, targetTile.y * 32 + 24)
             }
         } else {
