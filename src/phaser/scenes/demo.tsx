@@ -3,6 +3,7 @@ import {LdtkRoot} from "@/core/ldtk";
 import Sprite = Phaser.GameObjects.Sprite;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
 import {bresenhamLineOnGrid} from "@/core/util";
+import Key = Phaser.Input.Keyboard.Key;
 
 type Direction = 'left' | 'right' | 'up' | 'down'
 type XY = { x: number, y: number }
@@ -10,6 +11,7 @@ type XY = { x: number, y: number }
 export default class DemoScene extends Scene {
 
     cursors?: CursorKeys
+    shift?: Key
     player?: {
         sprite: Sprite
         dir: Direction
@@ -62,6 +64,7 @@ export default class DemoScene extends Scene {
         this.addSprite(3, 2, 4).play('3_idle-down')
 
         this.cursors = this.input.keyboard.createCursorKeys()
+        this.shift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.player = {
             sprite: this.addSprite(0, 5, 6),
             dir: 'down',
@@ -74,7 +77,7 @@ export default class DemoScene extends Scene {
         super.update(time, delta);
 
         const pxPerMs = 4 * 32 / 1000 // TODO implement running
-        const totalSpeed = pxPerMs * delta
+        const totalSpeed = pxPerMs * delta * (this.shift!.isDown ? 2.5 : 1)
         const speed = {x: 0, y: 0}
         if (this.cursors?.down.isDown) {
             speed.y += totalSpeed
@@ -143,10 +146,10 @@ export default class DemoScene extends Scene {
                 this.player!.sprite.x = Math.min(this.player!.sprite.x, targetTile.x * 32 + 16)
             }
             if (!this.walkable![targetTile.y-1][targetTile.x]) {
-                this.player!.sprite.y = Math.max(this.player!.sprite.y, targetTile.y * 32 + 16)
+                this.player!.sprite.y = Math.max(this.player!.sprite.y, targetTile.y * 32 + 8)
             }
             if (!this.walkable![targetTile.y+1][targetTile.x]) {
-                this.player!.sprite.y = Math.min(this.player!.sprite.y, targetTile.y * 32 + 16)
+                this.player!.sprite.y = Math.min(this.player!.sprite.y, targetTile.y * 32 + 24)
             }
         } else {
             // TODO walk closest possible
