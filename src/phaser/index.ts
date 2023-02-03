@@ -24,3 +24,18 @@ export const initPhaser = async () => {
         },
     });
 }
+
+/**
+ * Takes away Phaser's keyboard if any element on the page uses focus.
+ * Allows input elements to capture keys, without delegating them to Phaser.
+ *
+ * @param game
+ */
+export const disableKeyboardOnBlur = (game: Phaser.Game) => {
+    document.addEventListener('focusin', () => {
+        game.input.keyboard.enabled = false
+    })
+    document.addEventListener('focusout', () => {
+        game.input.keyboard.enabled = true
+    })
+}

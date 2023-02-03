@@ -13,14 +13,28 @@ const Chat: React.FC = () => {
     const [connected, setConnected] = useState<boolean>(false);
     const [chat, setChat] = useState<IMsg[]>([]);
     const [msg, setMsg] = useState<string>("");
+    const [hasFocus, setHasFocus] = useState<boolean>(false)
+    const inputHasFocus = () => {
+        const hasFocusNow = inputRef.current === inputRef.current?.ownerDocument.activeElement
+        if (hasFocusNow != hasFocus) {
+            setHasFocus(hasFocusNow)
+        }
+        return hasFocusNow
+    }
 
     useEffect((): any => {
+        const focusInputOnMKey = (e: KeyboardEvent) => {
+            if (e.key === "m" && !inputHasFocus()) {
+                inputRef.current?.focus()
+                e.preventDefault()
+            }
+        }
+        document.addEventListener('keydown', focusInputOnMKey)
         const socket = io(process.env.BASE_URL!, {
             // TODO
             path: "/api/socketio",
         });
         socket.on("connect", () => {
-            console.log("SOCKET CONNECTED!", socket.id);
             setConnected(true);
         });
         socket.on("message", (message: IMsg) => {
@@ -60,7 +74,9 @@ const Chat: React.FC = () => {
                         </p>
                     ))
                 ) : (
-                    <p>No chat messages</p>
+                    <div>
+                        No chat messages<br/><br/>
+                    </div>
                 )}
             </div>
             <div>
@@ -73,9 +89,12 @@ const Chat: React.FC = () => {
                     onChange={(e) => {
                         setMsg(e.target.value);
                     }}
-                    onKeyPress={(e) => {
+                    onKeyUp={(e) => {
                         if (e.key === "Enter") {
                             sendMessage();
+                        } else if (e.key === "Escape") {
+                            setMsg('')
+                            inputRef.current?.blur()
                         }
                     }}
                 />
@@ -85,6 +104,10 @@ const Chat: React.FC = () => {
                 >
                     SEND
                 </button>
+                <>
+                    <br/>
+                    <small>Press {inputHasFocus() ? 'ESC to return to game' : 'M to write a message'}</small>
+                </>
             </div>
         </div>
     );

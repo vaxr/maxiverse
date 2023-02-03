@@ -28,7 +28,7 @@ export class KeyMapper {
     }
 
     public bind(code: PhaserKeyCode, binding: KeyBinding) {
-        const key = this.scene.input.keyboard.addKey(code, false)
+        const key = this.scene.input.keyboard.addKey(code, true)
         this.keyBindings.set(key.keyCode, binding)
         this.keys.set(key.keyCode, key)
     }

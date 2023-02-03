@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from "react";
 import {Game} from "phaser";
-import {initPhaser} from "@/phaser";
+import {disableKeyboardOnBlur, initPhaser} from "@/phaser";
 
 export default function PhaserCanvas() {
     const [game, setGame] = useState<Game>();
@@ -13,6 +13,7 @@ export default function PhaserCanvas() {
         if (!game && !initCalledRef.current) {
             (async () => {
                 const phaserGame = await initPhaser()
+                disableKeyboardOnBlur(phaserGame)
                 setGame(phaserGame);
             })()
             initCalledRef.current = true
@@ -21,6 +22,6 @@ export default function PhaserCanvas() {
 
     return <div>
         <div id="phaser-canvas" key="phaser-canvas"/>
-        <p><b>Walk:</b> Arrow keys, <b>Run:</b> Shift</p>
+        <p><b>Walk:</b> WASD or Arrow Keys, <b>Run:</b> Shift</p>
     </div>
 }
