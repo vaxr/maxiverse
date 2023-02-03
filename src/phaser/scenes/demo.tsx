@@ -1,11 +1,10 @@
 import {Scene} from 'phaser';
 import {LdtkRoot} from "@/core/ldtk";
+import {CardinalDirection, Player, XY} from "@/core/model/game";
 import Sprite = Phaser.GameObjects.Sprite;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
 import Key = Phaser.Input.Keyboard.Key;
-
-type Direction = 'left' | 'right' | 'up' | 'down'
-type XY = { x: number, y: number }
+import Map = Phaser.Structs.Map;
 
 export default class DemoScene extends Scene {
 
@@ -13,11 +12,14 @@ export default class DemoScene extends Scene {
     shift?: Key
     player?: {
         sprite: Sprite
-        dir: Direction
+        dir: CardinalDirection
         walking: boolean
         speed: XY
     }
     walkable?: boolean[][]
+
+    sprites: Map<string, Sprite> = new Map([])
+    players: Map<string, Player> = new Map([])
 
     constructor() {
         super('demo');
@@ -58,15 +60,15 @@ export default class DemoScene extends Scene {
         })
 
         this.addAnimations()
-        this.addSprite(1, 3, 4).play('1_idle-down')
-        this.addSprite(2, 9, 8).play('2_idle-up')
-        this.addSprite(3, 2, 4).play('3_idle-down')
+        this.addSprite(1, 3, 4).play(`1_idle-${CardinalDirection.down}`)
+        this.addSprite(2, 9, 8).play(`2_idle-${CardinalDirection.up}`)
+        this.addSprite(3, 2, 4).play(`3_idle-${CardinalDirection.down}`)
 
         this.cursors = this.input.keyboard.createCursorKeys()
         this.shift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
         this.player = {
             sprite: this.addSprite(0, 5, 6),
-            dir: 'down',
+            dir: CardinalDirection.down,
             walking: false,
             speed: {x: 0, y: 0}
         }
@@ -98,20 +100,20 @@ export default class DemoScene extends Scene {
         this.walkPlayer()
     }
 
-    private getAnimForSpeed(i: number, speed: XY, defaultDir: Direction = 'down') {
+    private getAnimForSpeed(i: number, speed: XY, defaultDir: CardinalDirection = CardinalDirection.down) {
         const type = speed.x != 0 || speed.y != 0 ? 'walk' : 'idle'
         const dir = this.getXYDir(speed) || defaultDir
         return `${i}_${type}-${dir}`
     }
 
-    private getXYDir(xy: XY): Direction | undefined {
+    private getXYDir(xy: XY): CardinalDirection | undefined {
         if (xy.x == 0 && xy.y == 0) return undefined
         if (Math.abs(xy.x) > Math.abs(xy.y)) {
-            if (xy.x > 0) return 'right'
-            return 'left'
+            if (xy.x > 0) return CardinalDirection.right
+            return CardinalDirection.left
         }
-        if (xy.y > 0) return 'down'
-        return 'up'
+        if (xy.y > 0) return CardinalDirection.down
+        return CardinalDirection.up
     }
 
     private updatePlayerSpeed(speed: XY) {
@@ -163,7 +165,12 @@ export default class DemoScene extends Scene {
     }
 
     private addAnimations() {
-        const dirs: [number, string][] = [[0, 'down'], [1, 'left'], [2, 'right'], [3, 'up']]
+        const dirs: [number, CardinalDirection][] = [
+            [0, CardinalDirection.down],
+            [1, CardinalDirection.left],
+            [2, CardinalDirection.right],
+            [3, CardinalDirection.up],
+        ]
         for (let i = 0; i < 4; i++) {
             for (let [row, dir] of dirs) {
                 const off = row * 12 + i * 3
@@ -190,7 +197,7 @@ export default class DemoScene extends Scene {
 
     private addSprite(i: number, x: number, y: number): Sprite {
         const sprite = this.add.sprite(16 + 32 * x, 32 * y - 6, DemoScene.SpriteSheets[0]).setScale(0.75, 0.75)
-        sprite.play(`${i}_idle-down`)
+        sprite.play(`${i}_idle-${CardinalDirection.down}`)
         sprite.setOrigin(0.5, 0.90)
         return sprite
     }
