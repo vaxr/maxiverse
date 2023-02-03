@@ -19,5 +19,8 @@ export default function PhaserCanvas() {
         }
     }, [game]);
 
-    return <div id="phaser-canvas" key="phaser-canvas"/>
+    return <div>
+        <div id="phaser-canvas" key="phaser-canvas"/>
+        <p><b>Walk:</b> Arrow keys, <b>Run:</b> Shift</p>
+    </div>
 }

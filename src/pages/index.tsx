@@ -2,6 +2,7 @@ import Head from 'next/head'
 import styles from '@/styles/Home.module.css'
 import React from "react";
 import PhaserCanvas from "@/components/phaser";
+import Chat from "@/pages/chat";
 
 export default function Home() {
     return (
@@ -13,8 +14,10 @@ export default function Home() {
                 <link rel="icon" href="/favicon.ico"/>
             </Head>
             <main className={styles.main}>
-                <PhaserCanvas/>
-                <p><b>Walk:</b> Arrow keys, <b>Run:</b> Shift</p>
+                <div style={{display: "flex", gap: "12px"}}>
+                    <PhaserCanvas/>
+                    <Chat/>
+                </div>
             </main>
         </>
     )
