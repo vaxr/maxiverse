@@ -1,12 +1,17 @@
 import {Scene} from 'phaser';
 import {LdtkRoot} from "@/core/ldtk";
 import {CardinalDirection, Player, XY} from "@/core/model/game";
+import {KeyBinding} from "@/core/model/input";
+import {KeyMapper} from "@/phaser/keymapper";
 import Sprite = Phaser.GameObjects.Sprite;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
 import Key = Phaser.Input.Keyboard.Key;
 import Map = Phaser.Structs.Map;
 
+
 export default class DemoScene extends Scene {
+
+    keymap: KeyMapper = new KeyMapper(this)
 
     cursors?: CursorKeys
     shift?: Key
@@ -39,6 +44,8 @@ export default class DemoScene extends Scene {
     }
 
     create() {
+        this.keymap.bindDefaults()
+
         const ldtk = new LdtkRoot(this.cache.json.get('ldtk'))
         const map = this.make.tilemap({
             tileWidth: 32,
@@ -55,13 +62,9 @@ export default class DemoScene extends Scene {
         })
 
         this.addAnimations()
-        this.addSprite('npc_client-girl', '1', 3, 4).play(`1_idle-${CardinalDirection.down}`)
-        this.addSprite('npc_receptionist', '2', 9, 8).play(`2_idle-${CardinalDirection.up}`)
-        this.addSprite('npc_client-boy', '3', 2, 4).play(`3_idle-${CardinalDirection.down}`)
-
-        this.cursors = this.input.keyboard.createCursorKeys()
-        this.shift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-
+        this.addSprite('npc_client-girl', '1', 3, 4).play(`1_idle-${CardinalDirection.DOWN}`)
+        this.addSprite('npc_receptionist', '2', 9, 8).play(`2_idle-${CardinalDirection.UP}`)
+        this.addSprite('npc_client-boy', '3', 2, 4).play(`3_idle-${CardinalDirection.DOWN}`)
 
         const username = "Max" + `${Math.random()}`.substr(-6);
         const playerSprite = this.addSprite(`player_${username}`, '0', 7, 4)
@@ -71,7 +74,7 @@ export default class DemoScene extends Scene {
             sprite: 'player0',
             position: {x: playerSprite.x, y: playerSprite.y},
             speed: {x: 0, y: 0},
-            facing: CardinalDirection.down
+            facing: CardinalDirection.DOWN
         }
         this.player = player
         this.players.set(`player_${player.username}`, player)
@@ -80,20 +83,21 @@ export default class DemoScene extends Scene {
 
     update(time: number, delta: number) {
         super.update(time, delta);
+        this.keymap.update()
 
-        const pxPerMs = 4 * 32 / 1000 // TODO implement running
-        const totalSpeed = pxPerMs * delta * (this.shift!.isDown ? 2.5 : 1)
+        const pxPerMs = 4 * 32 / 1000
+        const totalSpeed = pxPerMs * delta * (this.keymap.isDown(KeyBinding.RUN) ? 2.5 : 1)
         const speed = {x: 0, y: 0}
-        if (this.cursors?.down.isDown) {
+        if (this.keymap.isDown(KeyBinding.DOWN)) {
             speed.y += totalSpeed
         }
-        if (this.cursors?.up.isDown) {
+        if (this.keymap.isDown(KeyBinding.UP)) {
             speed.y -= totalSpeed
         }
-        if (this.cursors?.right.isDown) {
+        if (this.keymap.isDown(KeyBinding.RIGHT)) {
             speed.x += totalSpeed
         }
-        if (this.cursors?.left.isDown) {
+        if (this.keymap.isDown(KeyBinding.LEFT)) {
             speed.x -= totalSpeed
         }
         if (speed.x != 0 && speed.y != 0) {
@@ -110,13 +114,13 @@ export default class DemoScene extends Scene {
                 x: player.x - receptionist.x,
                 y: player.y - receptionist.y,
             })
-            if (newFacing === CardinalDirection.up || newFacing === CardinalDirection.left) {
+            if (newFacing === CardinalDirection.UP || newFacing === CardinalDirection.LEFT) {
                 receptionist.play(`2_idle-${newFacing}`)
             }
         }
     }
 
-    private getAnimForSpeed(i: number, speed: XY, defaultDir: CardinalDirection = CardinalDirection.down) {
+    private getAnimForSpeed(i: number, speed: XY, defaultDir: CardinalDirection = CardinalDirection.DOWN) {
         const type = speed.x != 0 || speed.y != 0 ? 'walk' : 'idle'
         const dir = this.getXYDir(speed) || defaultDir
         return `${i}_${type}-${dir}`
@@ -125,11 +129,11 @@ export default class DemoScene extends Scene {
     private getXYDir(xy: XY): CardinalDirection | undefined {
         if (xy.x == 0 && xy.y == 0) return undefined
         if (Math.abs(xy.x) > Math.abs(xy.y)) {
-            if (xy.x > 0) return CardinalDirection.right
-            return CardinalDirection.left
+            if (xy.x > 0) return CardinalDirection.RIGHT
+            return CardinalDirection.LEFT
         }
-        if (xy.y > 0) return CardinalDirection.down
-        return CardinalDirection.up
+        if (xy.y > 0) return CardinalDirection.DOWN
+        return CardinalDirection.UP
     }
 
     private updatePlayerSpeed(speed: XY) {
@@ -194,10 +198,10 @@ export default class DemoScene extends Scene {
 
     private addAnimations() {
         const dirs: [number, CardinalDirection][] = [
-            [0, CardinalDirection.down],
-            [1, CardinalDirection.left],
-            [2, CardinalDirection.right],
-            [3, CardinalDirection.up],
+            [0, CardinalDirection.DOWN],
+            [1, CardinalDirection.LEFT],
+            [2, CardinalDirection.RIGHT],
+            [3, CardinalDirection.UP],
         ]
         for (let i = 0; i < 4; i++) {
             for (let [row, dir] of dirs) {
@@ -225,7 +229,7 @@ export default class DemoScene extends Scene {
 
     private addSprite(id: string, charset: string, x: number, y: number): Sprite {
         const sprite = this.add.sprite(16 + 32 * x, 32 * y - 6, DemoScene.SpriteSheets[0]).setScale(0.75, 0.75)
-        sprite.play(`${charset}_idle-${CardinalDirection.down}`)
+        sprite.play(`${charset}_idle-${CardinalDirection.DOWN}`)
         sprite.setOrigin(0.5, 0.90)
         this.sprites.set(id, sprite)
         return sprite

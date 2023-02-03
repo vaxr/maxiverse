@@ -1,4 +1,5 @@
-export enum CardinalDirection { undefined, up, down, left, right }
+export enum CardinalDirection { UNDEFINED, UP, DOWN, LEFT, RIGHT }
+
 export type XY = { x: number, y: number }
 
 
