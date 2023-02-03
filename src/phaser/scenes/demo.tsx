@@ -10,15 +10,10 @@ export default class DemoScene extends Scene {
 
     cursors?: CursorKeys
     shift?: Key
-    player?: {
-        sprite: Sprite
-        dir: CardinalDirection
-        walking: boolean
-        speed: XY
-    }
     walkable?: boolean[][]
 
     sprites: Map<string, Sprite> = new Map([])
+    player?: Player
     players: Map<string, Player> = new Map([])
 
     constructor() {
@@ -60,18 +55,27 @@ export default class DemoScene extends Scene {
         })
 
         this.addAnimations()
-        this.addSprite(1, 3, 4).play(`1_idle-${CardinalDirection.down}`)
-        this.addSprite(2, 9, 8).play(`2_idle-${CardinalDirection.up}`)
-        this.addSprite(3, 2, 4).play(`3_idle-${CardinalDirection.down}`)
+        this.addSprite('npc_client-girl', '1', 3, 4).play(`1_idle-${CardinalDirection.down}`)
+        this.addSprite('npc_receptionist', '2', 9, 8).play(`2_idle-${CardinalDirection.up}`)
+        this.addSprite('npc_client-boy', '3', 2, 4).play(`3_idle-${CardinalDirection.down}`)
 
         this.cursors = this.input.keyboard.createCursorKeys()
         this.shift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
-        this.player = {
-            sprite: this.addSprite(0, 5, 6),
-            dir: CardinalDirection.down,
-            walking: false,
-            speed: {x: 0, y: 0}
+
+
+        const username = "Max" + `${Math.random()}`.substr(-6);
+        const playerSprite = this.addSprite(`player_${username}`, '0', 7, 4)
+        const player: Player = {
+            username: username,
+            nick: username,
+            sprite: 'player0',
+            position: {x: playerSprite.x, y: playerSprite.y},
+            speed: {x: 0, y: 0},
+            facing: CardinalDirection.down
         }
+        this.player = player
+        this.players.set(`player_${player.username}`, player)
+        this.sprites.set(`player_${player.username}`, playerSprite)
     }
 
     update(time: number, delta: number) {
@@ -98,6 +102,18 @@ export default class DemoScene extends Scene {
         }
         this.updatePlayerSpeed(speed)
         this.walkPlayer()
+
+        {
+            const receptionist = this.sprites.get('npc_receptionist')!
+            const player = this.getPlayerSprite()
+            const newFacing = this.getXYDir({
+                x: player.x - receptionist.x,
+                y: player.y - receptionist.y,
+            })
+            if (newFacing === CardinalDirection.up || newFacing === CardinalDirection.left) {
+                receptionist.play(`2_idle-${newFacing}`)
+            }
+        }
     }
 
     private getAnimForSpeed(i: number, speed: XY, defaultDir: CardinalDirection = CardinalDirection.down) {
@@ -118,19 +134,30 @@ export default class DemoScene extends Scene {
 
     private updatePlayerSpeed(speed: XY) {
         if (speed != this.player!.speed) {
-            const anim = this.getAnimForSpeed(0, speed, this.player!.dir)
-            if (anim != this.getAnimForSpeed(0, this.player!.speed, this.player!.dir)) {
-                this.player?.sprite.play(anim)
-            }
+            const anim = this.getAnimForSpeed(0, speed, this.player!.facing)
+            const needsUpdate = anim != this.getAnimForSpeed(0, this.player!.speed, this.player!.facing)
             this.player!.speed = speed
-            this.player!.dir = this.getXYDir(speed) || this.player!.dir
+            this.player!.facing = this.getXYDir(speed) || this.player!.facing
+            if (needsUpdate) {
+                this.getPlayerSprite().play(anim)
+            }
         }
+    }
+
+    private getPlayerSprite() {
+        return this.sprites.get(`player_${this.player!.username}`)
+    }
+
+    private updatePlayerSprite() {
+        const sprite = this.getPlayerSprite()
+        sprite.x = this.player!.position.x
+        sprite.y = this.player!.position.y
     }
 
     private walkPlayer() {
         const targetPx = {
-            x: this.player!.sprite.x + this.player!.speed.x,
-            y: this.player!.sprite.y + this.player!.speed.y,
+            x: this.player!.position.x + this.player!.speed.x,
+            y: this.player!.position.y + this.player!.speed.y,
         }
         const targetTile = {
             x: Math.floor(targetPx.x / 32),
@@ -138,20 +165,21 @@ export default class DemoScene extends Scene {
         }
         // TODO handle multiple tiles
         if (this.walkable![targetTile.y][targetTile.x]) {
-            this.player!.sprite.x = targetPx.x
-            this.player!.sprite.y = targetPx.y
+            this.player!.position.x = targetPx.x
+            this.player!.position.y = targetPx.y
             if (!this.walkable![targetTile.y][targetTile.x - 1]) {
-                this.player!.sprite.x = Math.max(this.player!.sprite.x, targetTile.x * 32 + 16)
+                this.player!.position.x = Math.max(this.player!.position.x, targetTile.x * 32 + 16)
             }
             if (!this.walkable![targetTile.y][targetTile.x + 1]) {
-                this.player!.sprite.x = Math.min(this.player!.sprite.x, targetTile.x * 32 + 16)
+                this.player!.position.x = Math.min(this.player!.position.x, targetTile.x * 32 + 16)
             }
             if (!this.walkable![targetTile.y - 1][targetTile.x]) {
-                this.player!.sprite.y = Math.max(this.player!.sprite.y, targetTile.y * 32 + 8)
+                this.player!.position.y = Math.max(this.player!.position.y, targetTile.y * 32 + 8)
             }
             if (!this.walkable![targetTile.y + 1][targetTile.x]) {
-                this.player!.sprite.y = Math.min(this.player!.sprite.y, targetTile.y * 32 + 24)
+                this.player!.position.y = Math.min(this.player!.position.y, targetTile.y * 32 + 24)
             }
+            this.updatePlayerSprite()
         } else {
             // TODO walk closest possible
         }
@@ -195,10 +223,11 @@ export default class DemoScene extends Scene {
         }
     }
 
-    private addSprite(i: number, x: number, y: number): Sprite {
+    private addSprite(id: string, charset: string, x: number, y: number): Sprite {
         const sprite = this.add.sprite(16 + 32 * x, 32 * y - 6, DemoScene.SpriteSheets[0]).setScale(0.75, 0.75)
-        sprite.play(`${i}_idle-${CardinalDirection.down}`)
+        sprite.play(`${charset}_idle-${CardinalDirection.down}`)
         sprite.setOrigin(0.5, 0.90)
+        this.sprites.set(id, sprite)
         return sprite
     }
 }
