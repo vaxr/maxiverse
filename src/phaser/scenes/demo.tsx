@@ -1,8 +1,10 @@
 import {Scene} from 'phaser';
 import {LdtkRoot} from "@/core/ldtk";
-import {CardinalDirection, Player, XY} from "@/core/model/game";
-import {KeyBinding} from "@/core/model/input";
+import {KeyBindings, MoveKeyBindings} from "@/core/model/input";
 import {KeyMapper} from "@/phaser/keymapper";
+import {CardinalDirection, GameMap, XY} from "@/core/model/map";
+import {Player, playerMoveKeysToXYSpeed} from "@/core/model/player";
+import GameServer from "@/core/server";
 import Sprite = Phaser.GameObjects.Sprite;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
 import Key = Phaser.Input.Keyboard.Key;
@@ -15,7 +17,7 @@ export default class DemoScene extends Scene {
 
     cursors?: CursorKeys
     shift?: Key
-    walkable?: boolean[][]
+    gameMap?: GameMap
 
     sprites: Map<string, Sprite> = new Map([])
     player?: Player
@@ -53,13 +55,19 @@ export default class DemoScene extends Scene {
             width: 24,
             height: 16,
         })
+        this.gameMap = {
+            id: 'demo_map',
+            tileWidth: map.tileWidth,
+            tileHeight: map.tileHeight,
+            width: map.width,
+            height: map.height,
+            walkable: ldtk.level(0).layer('collision').intGridCsv.map((row) => {
+                return row.map((tile) => tile == 1)
+            })
+        }
         this.addLdtkLayer(map, ldtk, 'bg0')
         this.addLdtkLayer(map, ldtk, 'bg1')
         this.addLdtkLayer(map, ldtk, 'bg2')
-
-        this.walkable = ldtk.level(0).layer('collision').intGridCsv.map((row) => {
-            return row.map((tile) => tile == 1)
-        })
 
         this.addAnimations()
         this.addSprite('npc_client-girl', '1', 3, 4).play(`1_idle-${CardinalDirection.DOWN}`)
@@ -72,9 +80,10 @@ export default class DemoScene extends Scene {
             username: username,
             nick: username,
             sprite: 'player0',
-            position: {x: playerSprite.x, y: playerSprite.y},
+            mapPosition: {mapId: this.gameMap.id, x: playerSprite.x, y: playerSprite.y},
             speed: {x: 0, y: 0},
-            facing: CardinalDirection.DOWN
+            facing: CardinalDirection.DOWN,
+            moveKeys: new Set()
         }
         this.player = player
         this.players.set(`player_${player.username}`, player)
@@ -85,27 +94,16 @@ export default class DemoScene extends Scene {
         super.update(time, delta);
         this.keymap.update()
 
-        const pxPerMs = 4 * 32 / 1000
-        const totalSpeed = pxPerMs * delta * (this.keymap.isDown(KeyBinding.RUN) ? 2.5 : 1)
-        const speed = {x: 0, y: 0}
-        if (this.keymap.isDown(KeyBinding.DOWN)) {
-            speed.y += totalSpeed
+        this.player!.moveKeys = this.determinePlayerMoveKeys()
+        // TODO send move keys to server
+
+        for (const player of Array.from(this.players.values())) {
+            let xySpeed = playerMoveKeysToXYSpeed(player.moveKeys)
+            xySpeed.x *= delta
+            xySpeed.y *= delta
+            this.updatePlayerSpeed(player, xySpeed)
+            this.walkPlayer(player)
         }
-        if (this.keymap.isDown(KeyBinding.UP)) {
-            speed.y -= totalSpeed
-        }
-        if (this.keymap.isDown(KeyBinding.RIGHT)) {
-            speed.x += totalSpeed
-        }
-        if (this.keymap.isDown(KeyBinding.LEFT)) {
-            speed.x -= totalSpeed
-        }
-        if (speed.x != 0 && speed.y != 0) {
-            speed.x *= Math.sqrt(0.5)
-            speed.y *= Math.sqrt(0.5)
-        }
-        this.updatePlayerSpeed(speed)
-        this.walkPlayer()
 
         {
             const receptionist = this.sprites.get('npc_receptionist')!
@@ -118,6 +116,16 @@ export default class DemoScene extends Scene {
                 receptionist.play(`2_idle-${newFacing}`)
             }
         }
+    }
+
+    private determinePlayerMoveKeys(): KeyBindings {
+        const result: KeyBindings = new Set()
+        for (const binding of MoveKeyBindings) {
+            if (this.keymap.isDown(binding)) {
+                result.add(binding)
+            }
+        }
+        return result
     }
 
     private getAnimForSpeed(i: number, speed: XY, defaultDir: CardinalDirection = CardinalDirection.DOWN) {
@@ -136,12 +144,12 @@ export default class DemoScene extends Scene {
         return CardinalDirection.UP
     }
 
-    private updatePlayerSpeed(speed: XY) {
-        if (speed != this.player!.speed) {
-            const anim = this.getAnimForSpeed(0, speed, this.player!.facing)
-            const needsUpdate = anim != this.getAnimForSpeed(0, this.player!.speed, this.player!.facing)
-            this.player!.speed = speed
-            this.player!.facing = this.getXYDir(speed) || this.player!.facing
+    private updatePlayerSpeed(player: Player, speed: XY) {
+        if (speed != player.speed) {
+            const anim = this.getAnimForSpeed(0, speed, player.facing)
+            const needsUpdate = anim != this.getAnimForSpeed(0, player.speed, player.facing)
+            player.speed = speed
+            player.facing = this.getXYDir(speed) || player.facing
             if (needsUpdate) {
                 this.getPlayerSprite().play(anim)
             }
@@ -154,34 +162,34 @@ export default class DemoScene extends Scene {
 
     private updatePlayerSprite() {
         const sprite = this.getPlayerSprite()
-        sprite.x = this.player!.position.x
-        sprite.y = this.player!.position.y
+        sprite.x = this.player!.mapPosition.x
+        sprite.y = this.player!.mapPosition.y
     }
 
-    private walkPlayer() {
+    private walkPlayer(player: Player) {
         const targetPx = {
-            x: this.player!.position.x + this.player!.speed.x,
-            y: this.player!.position.y + this.player!.speed.y,
+            x: player.mapPosition.x + player.speed.x,
+            y: player.mapPosition.y + player.speed.y,
         }
         const targetTile = {
             x: Math.floor(targetPx.x / 32),
             y: Math.floor(targetPx.y / 32),
         }
         // TODO handle multiple tiles
-        if (this.walkable![targetTile.y][targetTile.x]) {
-            this.player!.position.x = targetPx.x
-            this.player!.position.y = targetPx.y
-            if (!this.walkable![targetTile.y][targetTile.x - 1]) {
-                this.player!.position.x = Math.max(this.player!.position.x, targetTile.x * 32 + 16)
+        if (this.gameMap!.walkable![targetTile.y][targetTile.x]) {
+            player.mapPosition.x = targetPx.x
+            player.mapPosition.y = targetPx.y
+            if (!this.gameMap!.walkable![targetTile.y][targetTile.x - 1]) {
+                player.mapPosition.x = Math.max(player.mapPosition.x, targetTile.x * 32 + 16)
             }
-            if (!this.walkable![targetTile.y][targetTile.x + 1]) {
-                this.player!.position.x = Math.min(this.player!.position.x, targetTile.x * 32 + 16)
+            if (!this.gameMap!.walkable![targetTile.y][targetTile.x + 1]) {
+                player.mapPosition.x = Math.min(player.mapPosition.x, targetTile.x * 32 + 16)
             }
-            if (!this.walkable![targetTile.y - 1][targetTile.x]) {
-                this.player!.position.y = Math.max(this.player!.position.y, targetTile.y * 32 + 8)
+            if (!this.gameMap!.walkable![targetTile.y - 1][targetTile.x]) {
+                player.mapPosition.y = Math.max(player.mapPosition.y, targetTile.y * 32 + 8)
             }
-            if (!this.walkable![targetTile.y + 1][targetTile.x]) {
-                this.player!.position.y = Math.min(this.player!.position.y, targetTile.y * 32 + 24)
+            if (!this.gameMap!.walkable![targetTile.y + 1][targetTile.x]) {
+                player.mapPosition.y = Math.min(player.mapPosition.y, targetTile.y * 32 + 24)
             }
             this.updatePlayerSprite()
         } else {
