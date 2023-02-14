@@ -2,15 +2,18 @@ import {CardinalDirection, Charset, GameMap, getXYDir, gridMapPos, MapEntity} fr
 import {Player, playerMoveKeysToXYSpeed} from "@/core/model/player";
 import {KeyBindings} from "@/core/model/input";
 import {LdtkRoot} from "@/core/ldtk";
+import {ClientSocket, CreatePlayerRequest, CreatePlayerResponse, MessageType, TimestampMs} from "@/core/model/protocol";
 
-export default class GameClient {
+export default class MapClient {
     player?: Player
     entities: Map<string, MapEntity> = new Map([])
     map?: GameMap
+    socket: ClientSocket
 
     defaultSpriteSheet: string
 
-    constructor(defaultSpriteSheet: string) {
+    constructor(socket: ClientSocket, defaultSpriteSheet: string) {
+        this.socket = socket
         this.defaultSpriteSheet = defaultSpriteSheet
     }
 
@@ -53,18 +56,29 @@ export default class GameClient {
         })
     }
 
+    private getTimestamp(): TimestampMs {
+        // TODO Use NTP
+        return new Date().getTime()
+    }
+
     private initPlayer() {
         const username = "Max" + `${Math.random()}`.substr(-6);
-        this.player = {
-            username: username,
-            nick: username,
-            entityId: `player_${username}`,
-            charset: new Charset(this.defaultSpriteSheet),
-            mapPosition: gridMapPos(this.map!, 7, 4),
-            speed: {x: 0, y: 0},
-            facing: CardinalDirection.DOWN,
-        }
-        this.entities.set(this.player.entityId, this.player)
+        this.socket.request({
+            type: MessageType.CREATE_PLAYER,
+            timestamp: this.getTimestamp(),
+            username,
+        } as CreatePlayerRequest).then((res: CreatePlayerResponse) => {
+            if (res.error) {
+                console.error(`${res.error.code}: ${res.error.message}`)
+                return
+            }
+            if (res.player) {
+                this.player = res.player
+                this.entities.set(this.player.entityId, this.player)
+            } else {
+                console.error('Response didn\'t contain player information:', res)
+            }
+        })
     }
 
     private addEntity(ent: MapEntity): MapEntity {
@@ -73,7 +87,8 @@ export default class GameClient {
     }
 
     public updatePlayerMoveKeys(keys: KeyBindings) {
-        const player = this.player!
+        const player = this.player
+        if (!player) return
         // TODO send keys to server
         player.speed = playerMoveKeysToXYSpeed(keys)
         player.facing = getXYDir(player.speed) || player.facing
@@ -85,10 +100,11 @@ export default class GameClient {
     }
 
     private updateReceptionist() {
+        if (!this.player) return
         const receptionist = this.entities.get('npc_receptionist')!
         const newFacing = getXYDir({
-            x: this.player!.mapPosition.x - receptionist.mapPosition.x,
-            y: this.player!.mapPosition.y - receptionist.mapPosition.y,
+            x: this.player.mapPosition.x - receptionist.mapPosition.x,
+            y: this.player.mapPosition.y - receptionist.mapPosition.y,
         })
         if (newFacing === CardinalDirection.UP || newFacing === CardinalDirection.LEFT) {
             receptionist.facing = newFacing

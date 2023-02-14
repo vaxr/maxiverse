@@ -3,14 +3,15 @@ import {LdtkRoot} from "@/core/ldtk";
 import {KeyBindings, MoveKeyBindings} from "@/core/model/input";
 import {KeyMapper} from "@/phaser/keymapper";
 import {CardinalDirection, getAnimForEntity, MapEntity} from "@/core/model/map";
-import GameClient from "@/core/client";
+import MapClient from "@/core/client/map";
+import {ClientSocket} from "@/core/client/socket";
 import Sprite = Phaser.GameObjects.Sprite;
 import Map = Phaser.Structs.Map;
 
 
 export default class MapScene extends Scene {
 
-    client: GameClient = new GameClient(MapScene.SpriteSheets[0])
+    client: MapClient = new MapClient(new ClientSocket, MapScene.SpriteSheets[0])
     keymap: KeyMapper = new KeyMapper(this)
     sprites: Map<string, Sprite> = new Map([])
 
@@ -22,7 +23,7 @@ export default class MapScene extends Scene {
         'assets/stock/modern-tiles/interior.png',
         'assets/stock/modern-tiles/rooms.png',
     ]
-    private static SpriteSheets = [
+    public static SpriteSheets = [
         'assets/stock/modern-tiles/char.png',
     ]
 
@@ -91,7 +92,7 @@ export default class MapScene extends Scene {
         sprite.x = ent.mapPosition.x
         sprite.y = ent.mapPosition.y
         const newAnim = getAnimForEntity(ent)
-        if (sprite.anims.currentAnim.key != newAnim) {
+        if (sprite.anims?.currentAnim?.key != newAnim) {
             sprite.play(newAnim)
         }
     }
