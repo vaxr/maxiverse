@@ -2,26 +2,18 @@ import {Scene} from 'phaser';
 import {LdtkRoot} from "@/core/ldtk";
 import {KeyBindings, MoveKeyBindings} from "@/core/model/input";
 import {KeyMapper} from "@/phaser/keymapper";
-import {CardinalDirection, GameMap, XY} from "@/core/model/map";
-import {Player, playerMoveKeysToXYSpeed} from "@/core/model/player";
-import GameServer from "@/core/server";
+import {CardinalDirection, getXYDir, gridMapPos, MapPosition} from "@/core/model/map";
+import {Charset, getAnimForPlayer, Player} from "@/core/model/player";
+import GameClient from "@/core/client";
 import Sprite = Phaser.GameObjects.Sprite;
-import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
-import Key = Phaser.Input.Keyboard.Key;
 import Map = Phaser.Structs.Map;
 
 
 export default class DemoScene extends Scene {
 
+    client: GameClient = new GameClient()
     keymap: KeyMapper = new KeyMapper(this)
-
-    cursors?: CursorKeys
-    shift?: Key
-    gameMap?: GameMap
-
     sprites: Map<string, Sprite> = new Map([])
-    player?: Player
-    players: Map<string, Player> = new Map([])
 
     constructor() {
         super('demo');
@@ -55,7 +47,7 @@ export default class DemoScene extends Scene {
             width: 24,
             height: 16,
         })
-        this.gameMap = {
+        this.client.map = {
             id: 'demo_map',
             tileWidth: map.tileWidth,
             tileHeight: map.tileHeight,
@@ -70,47 +62,43 @@ export default class DemoScene extends Scene {
         this.addLdtkLayer(map, ldtk, 'bg2')
 
         this.addAnimations()
-        this.addSprite('npc_client-girl', '1', 3, 4).play(`1_idle-${CardinalDirection.DOWN}`)
-        this.addSprite('npc_receptionist', '2', 9, 8).play(`2_idle-${CardinalDirection.UP}`)
-        this.addSprite('npc_client-boy', '3', 2, 4).play(`3_idle-${CardinalDirection.DOWN}`)
+        const charset1 = new Charset(DemoScene.SpriteSheets[0])
+        charset1.sheetOffset = 1
+        const charset2 = new Charset(DemoScene.SpriteSheets[0])
+        charset2.sheetOffset = 2
+        charset2.direction = CardinalDirection.UP
+        const charset3 = new Charset(DemoScene.SpriteSheets[0])
+        charset3.sheetOffset = 3
+
+        this.addSprite('npc_client-girl', charset1, gridMapPos(this.client.map, 3, 4))
+        this.addSprite('npc_receptionist', charset2, gridMapPos(this.client.map, 9, 8))
+        this.addSprite('npc_client-boy', charset3, gridMapPos(this.client.map, 2, 4))
 
         const username = "Max" + `${Math.random()}`.substr(-6);
-        const playerSprite = this.addSprite(`player_${username}`, '0', 7, 4)
         const player: Player = {
             username: username,
             nick: username,
-            sprite: 'player0',
-            mapPosition: {mapId: this.gameMap.id, x: playerSprite.x, y: playerSprite.y},
+            spriteId: `player_${username}`,
+            charset: new Charset(DemoScene.SpriteSheets[0]),
+            mapPosition: gridMapPos(this.client.map, 7, 4),
             speed: {x: 0, y: 0},
             facing: CardinalDirection.DOWN,
-            moveKeys: new Set()
         }
-        this.player = player
-        this.players.set(`player_${player.username}`, player)
-        this.sprites.set(`player_${player.username}`, playerSprite)
+        this.client.player = player
+        this.client.players.set(player.username, player)
     }
 
-    update(time: number, delta: number) {
-        super.update(time, delta);
+    update(time: number, deltaMs: number) {
+        super.update(time, deltaMs);
         this.keymap.update()
-
-        this.player!.moveKeys = this.determinePlayerMoveKeys()
-        // TODO send move keys to server
-
-        for (const player of Array.from(this.players.values())) {
-            let xySpeed = playerMoveKeysToXYSpeed(player.moveKeys)
-            xySpeed.x *= delta
-            xySpeed.y *= delta
-            this.updatePlayerSpeed(player, xySpeed)
-            this.walkPlayer(player)
-        }
-
+        this.client.updatePlayerMoveKeys(this.determinePlayerMoveKeys())
+        this.client.movePlayers(deltaMs)
+        this.updatePlayerSprites()
         {
             const receptionist = this.sprites.get('npc_receptionist')!
-            const player = this.getPlayerSprite()
-            const newFacing = this.getXYDir({
-                x: player.x - receptionist.x,
-                y: player.y - receptionist.y,
+            const newFacing = getXYDir({
+                x: this.client.player!.mapPosition.x - receptionist.x,
+                y: this.client.player!.mapPosition.y - receptionist.y,
             })
             if (newFacing === CardinalDirection.UP || newFacing === CardinalDirection.LEFT) {
                 receptionist.play(`2_idle-${newFacing}`)
@@ -128,73 +116,36 @@ export default class DemoScene extends Scene {
         return result
     }
 
-    private getAnimForSpeed(i: number, speed: XY, defaultDir: CardinalDirection = CardinalDirection.DOWN) {
-        const type = speed.x != 0 || speed.y != 0 ? 'walk' : 'idle'
-        const dir = this.getXYDir(speed) || defaultDir
-        return `${i}_${type}-${dir}`
-    }
-
-    private getXYDir(xy: XY): CardinalDirection | undefined {
-        if (xy.x == 0 && xy.y == 0) return undefined
-        if (Math.abs(xy.x) > Math.abs(xy.y)) {
-            if (xy.x > 0) return CardinalDirection.RIGHT
-            return CardinalDirection.LEFT
+    private updatePlayerSprites() {
+        const handledPlayerSprites = new Set<string>()
+        for (const player of Array.from(this.client.players.values())) {
+            let sprite = this.sprites.get(player.spriteId) || this.addPlayerSprite(player)
+            this.updatePlayerSprite(player, sprite)
+            handledPlayerSprites.add(player.spriteId)
         }
-        if (xy.y > 0) return CardinalDirection.DOWN
-        return CardinalDirection.UP
-    }
-
-    private updatePlayerSpeed(player: Player, speed: XY) {
-        if (speed != player.speed) {
-            const anim = this.getAnimForSpeed(0, speed, player.facing)
-            const needsUpdate = anim != this.getAnimForSpeed(0, player.speed, player.facing)
-            player.speed = speed
-            player.facing = this.getXYDir(speed) || player.facing
-            if (needsUpdate) {
-                this.getPlayerSprite().play(anim)
+        // remove sprites without corresponding player
+        for (const spriteId of this.sprites.keys()) {
+            if (spriteId.startsWith('player_') && !handledPlayerSprites.has(spriteId)) {
+                const sprite = this.sprites.get(spriteId)
+                sprite.removedFromScene()
+                this.sprites.delete(spriteId)
             }
         }
     }
 
-    private getPlayerSprite() {
-        return this.sprites.get(`player_${this.player!.username}`)
+    private updatePlayerSprite(player: Player, sprite: Sprite) {
+        sprite.x = player.mapPosition.x
+        sprite.y = player.mapPosition.y
+        const newAnim = getAnimForPlayer(player)
+        if (sprite.anims.currentAnim.key != newAnim) {
+            sprite.play(newAnim)
+        }
     }
 
-    private updatePlayerSprite() {
-        const sprite = this.getPlayerSprite()
-        sprite.x = this.player!.mapPosition.x
-        sprite.y = this.player!.mapPosition.y
-    }
-
-    private walkPlayer(player: Player) {
-        const targetPx = {
-            x: player.mapPosition.x + player.speed.x,
-            y: player.mapPosition.y + player.speed.y,
-        }
-        const targetTile = {
-            x: Math.floor(targetPx.x / 32),
-            y: Math.floor(targetPx.y / 32),
-        }
-        // TODO handle multiple tiles
-        if (this.gameMap!.walkable![targetTile.y][targetTile.x]) {
-            player.mapPosition.x = targetPx.x
-            player.mapPosition.y = targetPx.y
-            if (!this.gameMap!.walkable![targetTile.y][targetTile.x - 1]) {
-                player.mapPosition.x = Math.max(player.mapPosition.x, targetTile.x * 32 + 16)
-            }
-            if (!this.gameMap!.walkable![targetTile.y][targetTile.x + 1]) {
-                player.mapPosition.x = Math.min(player.mapPosition.x, targetTile.x * 32 + 16)
-            }
-            if (!this.gameMap!.walkable![targetTile.y - 1][targetTile.x]) {
-                player.mapPosition.y = Math.max(player.mapPosition.y, targetTile.y * 32 + 8)
-            }
-            if (!this.gameMap!.walkable![targetTile.y + 1][targetTile.x]) {
-                player.mapPosition.y = Math.min(player.mapPosition.y, targetTile.y * 32 + 24)
-            }
-            this.updatePlayerSprite()
-        } else {
-            // TODO walk closest possible
-        }
+    private addPlayerSprite(player: Player): Sprite {
+        const sprite = this.addSprite(player.spriteId, player.charset, player.mapPosition)
+        this.sprites.set(player.spriteId, sprite)
+        return sprite
     }
 
     private addLdtkLayer(map: Phaser.Tilemaps.Tilemap, ldtk: LdtkRoot, name: string) {
@@ -235,10 +186,11 @@ export default class DemoScene extends Scene {
         }
     }
 
-    private addSprite(id: string, charset: string, x: number, y: number): Sprite {
-        const sprite = this.add.sprite(16 + 32 * x, 32 * y - 6, DemoScene.SpriteSheets[0]).setScale(0.75, 0.75)
-        sprite.play(`${charset}_idle-${CardinalDirection.DOWN}`)
-        sprite.setOrigin(0.5, 0.90)
+    private addSprite(id: string, charset: Charset, mapPosition: MapPosition): Sprite {
+        const sprite = this.add.sprite(mapPosition.x, mapPosition.y, charset.sheetId)
+            .setScale(0.75, 0.75) // TODO artificial scaling
+        sprite.setOrigin(0.5, 0.90) // TODO customize
+        sprite.play(charset.toString())
         this.sprites.set(id, sprite)
         return sprite
     }
