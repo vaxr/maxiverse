@@ -2,7 +2,7 @@ export const initPhaser = async () => {
     const Phaser = await import('phaser');
     // TODO import more phaser dependencies here
     const {default: Preloader} = await import('./scenes/preloader')
-    const {default: DemoScene} = await import('./scenes/demo')
+    const {default: MapScene} = await import('./scenes/map')
 
     return new Phaser.Game({
         type: Phaser.AUTO,
@@ -16,7 +16,7 @@ export const initPhaser = async () => {
         },
         scene: [
             Preloader,
-            DemoScene,
+            MapScene,
         ],
         fps: {
             target: 60,

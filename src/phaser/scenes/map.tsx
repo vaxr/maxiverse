@@ -2,20 +2,20 @@ import {Scene} from 'phaser';
 import {LdtkRoot} from "@/core/ldtk";
 import {KeyBindings, MoveKeyBindings} from "@/core/model/input";
 import {KeyMapper} from "@/phaser/keymapper";
-import {CardinalDirection, Charset, getAnimForEntity, getXYDir, gridMapPos, MapEntity} from "@/core/model/map";
+import {CardinalDirection, getAnimForEntity, MapEntity} from "@/core/model/map";
 import GameClient from "@/core/client";
 import Sprite = Phaser.GameObjects.Sprite;
 import Map = Phaser.Structs.Map;
 
 
-export default class DemoScene extends Scene {
+export default class MapScene extends Scene {
 
-    client: GameClient = new GameClient(DemoScene.SpriteSheets[0])
+    client: GameClient = new GameClient(MapScene.SpriteSheets[0])
     keymap: KeyMapper = new KeyMapper(this)
     sprites: Map<string, Sprite> = new Map([])
 
     constructor() {
-        super('demo');
+        super('map');
     }
 
     private static Images = [
@@ -27,10 +27,10 @@ export default class DemoScene extends Scene {
     ]
 
     preload() {
-        for (const path of DemoScene.Images) {
+        for (const path of MapScene.Images) {
             this.load.image(path, path);
         }
-        for (const path of DemoScene.SpriteSheets) {
+        for (const path of MapScene.SpriteSheets) {
             this.load.spritesheet(path, path, {frameWidth: 48, frameHeight: 96});
         }
         this.load.json('ldtk', 'demo.ldtk');
@@ -115,7 +115,7 @@ export default class DemoScene extends Scene {
                 const off = row * 12 + i * 3
                 this.anims.create({
                     key: `${i}_walk-${dir}`,
-                    frames: this.anims.generateFrameNumbers(DemoScene.SpriteSheets[0], {
+                    frames: this.anims.generateFrameNumbers(MapScene.SpriteSheets[0], {
                         frames: [off + 1, off, off + 1, off + 2]
                     }),
                     frameRate: 5,
@@ -123,7 +123,7 @@ export default class DemoScene extends Scene {
                 })
                 this.anims.create({
                     key: `${i}_idle-${dir}`,
-                    frames: this.anims.generateFrameNumbers(DemoScene.SpriteSheets[0], {
+                    frames: this.anims.generateFrameNumbers(MapScene.SpriteSheets[0], {
                         frames: [off + 1]
                     }),
                     frameRate: 5,
