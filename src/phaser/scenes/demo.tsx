@@ -2,8 +2,7 @@ import {Scene} from 'phaser';
 import {LdtkRoot} from "@/core/ldtk";
 import {KeyBindings, MoveKeyBindings} from "@/core/model/input";
 import {KeyMapper} from "@/phaser/keymapper";
-import {CardinalDirection, getXYDir, gridMapPos, MapPosition} from "@/core/model/map";
-import {Charset, getAnimForPlayer, Player} from "@/core/model/player";
+import {CardinalDirection, Charset, getAnimForEntity, getXYDir, gridMapPos, MapEntity} from "@/core/model/map";
 import GameClient from "@/core/client";
 import Sprite = Phaser.GameObjects.Sprite;
 import Map = Phaser.Structs.Map;
@@ -11,7 +10,7 @@ import Map = Phaser.Structs.Map;
 
 export default class DemoScene extends Scene {
 
-    client: GameClient = new GameClient()
+    client: GameClient = new GameClient(DemoScene.SpriteSheets[0])
     keymap: KeyMapper = new KeyMapper(this)
     sprites: Map<string, Sprite> = new Map([])
 
@@ -38,72 +37,29 @@ export default class DemoScene extends Scene {
     }
 
     create() {
-        this.keymap.bindDefaults()
-
         const ldtk = new LdtkRoot(this.cache.json.get('ldtk'))
+        this.client.init(ldtk)
+
         const map = this.make.tilemap({
-            tileWidth: 32,
-            tileHeight: 32,
-            width: 24,
-            height: 16,
+            tileWidth: this.client.map!.tileWidth,
+            tileHeight: this.client.map!.tileHeight,
+            width: this.client.map!.width,
+            height: this.client.map!.height,
         })
-        this.client.map = {
-            id: 'demo_map',
-            tileWidth: map.tileWidth,
-            tileHeight: map.tileHeight,
-            width: map.width,
-            height: map.height,
-            walkable: ldtk.level(0).layer('collision').intGridCsv.map((row) => {
-                return row.map((tile) => tile == 1)
-            })
-        }
         this.addLdtkLayer(map, ldtk, 'bg0')
         this.addLdtkLayer(map, ldtk, 'bg1')
         this.addLdtkLayer(map, ldtk, 'bg2')
-
         this.addAnimations()
-        const charset1 = new Charset(DemoScene.SpriteSheets[0])
-        charset1.sheetOffset = 1
-        const charset2 = new Charset(DemoScene.SpriteSheets[0])
-        charset2.sheetOffset = 2
-        charset2.direction = CardinalDirection.UP
-        const charset3 = new Charset(DemoScene.SpriteSheets[0])
-        charset3.sheetOffset = 3
 
-        this.addSprite('npc_client-girl', charset1, gridMapPos(this.client.map, 3, 4))
-        this.addSprite('npc_receptionist', charset2, gridMapPos(this.client.map, 9, 8))
-        this.addSprite('npc_client-boy', charset3, gridMapPos(this.client.map, 2, 4))
-
-        const username = "Max" + `${Math.random()}`.substr(-6);
-        const player: Player = {
-            username: username,
-            nick: username,
-            spriteId: `player_${username}`,
-            charset: new Charset(DemoScene.SpriteSheets[0]),
-            mapPosition: gridMapPos(this.client.map, 7, 4),
-            speed: {x: 0, y: 0},
-            facing: CardinalDirection.DOWN,
-        }
-        this.client.player = player
-        this.client.players.set(player.username, player)
+        this.keymap.bindDefaults()
     }
 
     update(time: number, deltaMs: number) {
         super.update(time, deltaMs);
         this.keymap.update()
         this.client.updatePlayerMoveKeys(this.determinePlayerMoveKeys())
-        this.client.movePlayers(deltaMs)
-        this.updatePlayerSprites()
-        {
-            const receptionist = this.sprites.get('npc_receptionist')!
-            const newFacing = getXYDir({
-                x: this.client.player!.mapPosition.x - receptionist.x,
-                y: this.client.player!.mapPosition.y - receptionist.y,
-            })
-            if (newFacing === CardinalDirection.UP || newFacing === CardinalDirection.LEFT) {
-                receptionist.play(`2_idle-${newFacing}`)
-            }
-        }
+        this.client.updateLogic(deltaMs)
+        this.updateSprites()
     }
 
     private determinePlayerMoveKeys(): KeyBindings {
@@ -116,36 +72,28 @@ export default class DemoScene extends Scene {
         return result
     }
 
-    private updatePlayerSprites() {
-        const handledPlayerSprites = new Set<string>()
-        for (const player of Array.from(this.client.players.values())) {
-            let sprite = this.sprites.get(player.spriteId) || this.addPlayerSprite(player)
-            this.updatePlayerSprite(player, sprite)
-            handledPlayerSprites.add(player.spriteId)
+    private updateSprites() {
+        const unhandledSpriteIds = new Set(this.sprites.keys())
+        for (const ent of Array.from(this.client.entities.values())) {
+            let sprite = this.sprites.get(ent.entityId) || this.addSprite(ent)
+            this.updateEntitySprite(ent, sprite)
+            unhandledSpriteIds.delete(ent.entityId)
         }
-        // remove sprites without corresponding player
-        for (const spriteId of this.sprites.keys()) {
-            if (spriteId.startsWith('player_') && !handledPlayerSprites.has(spriteId)) {
-                const sprite = this.sprites.get(spriteId)
-                sprite.removedFromScene()
-                this.sprites.delete(spriteId)
-            }
-        }
+        // remove sprites without corresponding entity
+        unhandledSpriteIds.forEach((spriteId) => {
+            const sprite = this.sprites.get(spriteId)
+            sprite.removedFromScene()
+            this.sprites.delete(spriteId)
+        })
     }
 
-    private updatePlayerSprite(player: Player, sprite: Sprite) {
-        sprite.x = player.mapPosition.x
-        sprite.y = player.mapPosition.y
-        const newAnim = getAnimForPlayer(player)
+    private updateEntitySprite(ent: MapEntity, sprite: Sprite) {
+        sprite.x = ent.mapPosition.x
+        sprite.y = ent.mapPosition.y
+        const newAnim = getAnimForEntity(ent)
         if (sprite.anims.currentAnim.key != newAnim) {
             sprite.play(newAnim)
         }
-    }
-
-    private addPlayerSprite(player: Player): Sprite {
-        const sprite = this.addSprite(player.spriteId, player.charset, player.mapPosition)
-        this.sprites.set(player.spriteId, sprite)
-        return sprite
     }
 
     private addLdtkLayer(map: Phaser.Tilemaps.Tilemap, ldtk: LdtkRoot, name: string) {
@@ -186,12 +134,12 @@ export default class DemoScene extends Scene {
         }
     }
 
-    private addSprite(id: string, charset: Charset, mapPosition: MapPosition): Sprite {
-        const sprite = this.add.sprite(mapPosition.x, mapPosition.y, charset.sheetId)
+    private addSprite(ent: MapEntity): Sprite {
+        const sprite = this.add.sprite(ent.mapPosition.x, ent.mapPosition.y, ent.charset.sheetId)
             .setScale(0.75, 0.75) // TODO artificial scaling
         sprite.setOrigin(0.5, 0.90) // TODO customize
-        sprite.play(charset.toString())
-        this.sprites.set(id, sprite)
+        sprite.play(ent.charset.toString())
+        this.sprites.set(ent.entityId, sprite)
         return sprite
     }
 }
