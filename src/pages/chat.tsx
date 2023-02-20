@@ -37,7 +37,7 @@ const Chat: React.FC = () => {
         socket.on("connect", () => {
             setConnected(true);
         });
-        socket.on("message", (message: IMsg) => {
+        socket.on('chat', (message: IMsg) => {
             chat.push(message);
             setChat([...chat].slice(-10));
         });
