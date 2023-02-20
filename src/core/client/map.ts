@@ -54,28 +54,6 @@ export default class MapClient {
 
     private initMap(ldtk: LdtkRoot) {
         this.map = ldtk.level(0).toGameMap('demo.ldtk') // TODO
-        // TODO add entities back in
-        // this.addEntity({
-        //     entityId: 'npc_client-girl',
-        //     charset: new Charset(this.defaultSpriteSheet, 1),
-        //     mapPosition: gridMapPos(this.map!, 3, 4),
-        //     speed: {x: 0, y: 0},
-        //     facing: CardinalDirection.DOWN,
-        // })
-        // this.addEntity({
-        //     entityId: 'npc_client-boy',
-        //     charset: new Charset(this.defaultSpriteSheet, 3),
-        //     mapPosition: gridMapPos(this.map!, 2, 4),
-        //     speed: {x: 0, y: 0},
-        //     facing: CardinalDirection.DOWN,
-        // })
-        // this.addEntity({
-        //     entityId: 'npc_receptionist',
-        //     charset: new Charset(this.defaultSpriteSheet, 2),
-        //     mapPosition: gridMapPos(this.map!, 9, 8),
-        //     speed: {x: 0, y: 0},
-        //     facing: CardinalDirection.UP,
-        // })
     }
 
     private getTimestamp(): TimestampMs {
@@ -103,11 +81,6 @@ export default class MapClient {
         })
     }
 
-    private addEntity(ent: MapEntity): MapEntity {
-        this.entities.set(ent.entityId, ent)
-        return ent
-    }
-
     public updatePlayerMoveKeys(keys: KeyBindings) {
         const player = this.player
         if (!player) return
@@ -123,20 +96,7 @@ export default class MapClient {
     }
 
     public updateLogic(deltaMs: number) {
-        // this.updateReceptionist()
         this.updateEntityPositions(deltaMs)
-    }
-
-    private updateReceptionist() {
-        if (!this.player) return
-        const receptionist = this.entities.get('npc_receptionist')!
-        const newFacing = getXYDir({
-            x: this.player.mapPosition.x - receptionist.mapPosition.x,
-            y: this.player.mapPosition.y - receptionist.mapPosition.y,
-        })
-        if (newFacing === CardinalDirection.UP || newFacing === CardinalDirection.LEFT) {
-            receptionist.facing = newFacing
-        }
     }
 
     private updateEntityPositions(deltaMs: number) {

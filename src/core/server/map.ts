@@ -1,5 +1,5 @@
 import {Player} from "@/core/model/player";
-import {CardinalDirection, Charset, GameMap, gridMapPos, MapEntity} from "@/core/model/map";
+import {CardinalDirection, Charset, GameMap, getXYDir, gridMapPos, MapEntity} from "@/core/model/map";
 import {
     CreatePlayerRequest,
     CreatePlayerResponse,
@@ -13,7 +13,7 @@ import {
 } from "@/core/model/protocol";
 import {readFileSync} from "fs";
 import {LdtkRoot} from "@/core/ldtk";
-import {updatePlayerIntent, updateEntityPosition} from "@/core/map";
+import {updateEntityPosition, updatePlayerIntent} from "@/core/map";
 
 export default class MapServer {
 
@@ -45,6 +45,30 @@ export default class MapServer {
         const map = ldtk.level(0).toGameMap(path) // TODO
         this.maps.set(path, map)
         this.entities.set(map.id, new Map())
+        {
+            this.addEntity(map.id, {
+                entityId: 'npc_client-girl',
+                charset: new Charset(MapServer.DefaultSpriteSheet, 1),
+                mapPosition: gridMapPos(map, 3, 4),
+                speed: {x: 0, y: 0},
+                facing: CardinalDirection.DOWN,
+            })
+            this.addEntity(map.id, {
+                entityId: 'npc_client-boy',
+                charset: new Charset(MapServer.DefaultSpriteSheet, 3),
+                mapPosition: gridMapPos(map, 2, 4),
+                speed: {x: 0, y: 0},
+                facing: CardinalDirection.DOWN,
+            })
+            this.addEntity(map.id, {
+                entityId: 'npc_receptionist',
+                charset: new Charset(MapServer.DefaultSpriteSheet, 2),
+                mapPosition: gridMapPos(map, 9, 8),
+                speed: {x: 0, y: 0},
+                facing: CardinalDirection.UP,
+            })
+
+        }
     }
 
     private defaultResponse(request: Request): Response {
@@ -134,6 +158,19 @@ export default class MapServer {
             timestamp: now,
             entities: Array.from(entities.values())
         } as EntitiesUpdate)
+        {
+            if (this.players.size < 1) return;
+            const player = this.players.values().next().value
+            if (!player) return
+            const receptionist = entities.get('npc_receptionist')!
+            const newFacing = getXYDir({
+                x: player.mapPosition.x - receptionist.mapPosition.x,
+                y: player.mapPosition.y - receptionist.mapPosition.y,
+            })
+            if (newFacing === CardinalDirection.UP || newFacing === CardinalDirection.LEFT) {
+                receptionist.facing = newFacing
+            }
+        }
     }
 
     private emitEntities(entities: MapEntity[]) {
@@ -142,5 +179,10 @@ export default class MapServer {
             timestamp: this.getTimestamp(),
             entities: Array.from(entities.values())
         } as EntitiesUpdate)
+    }
+
+    private addEntity(mapId: string, ent: MapEntity): MapEntity {
+        this.entities.get(mapId)!.set(ent.entityId, ent)
+        return ent
     }
 }
