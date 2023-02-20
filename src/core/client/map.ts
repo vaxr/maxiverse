@@ -1,59 +1,81 @@
 import {CardinalDirection, Charset, GameMap, getXYDir, gridMapPos, MapEntity} from "@/core/model/map";
-import {Player, playerMoveKeysToXYSpeed} from "@/core/model/player";
+import {Player} from "@/core/model/player";
 import {KeyBindings} from "@/core/model/input";
 import {LdtkRoot} from "@/core/ldtk";
-import {ClientSocket, CreatePlayerRequest, CreatePlayerResponse, MessageType, TimestampMs} from "@/core/model/protocol";
+import {
+    ClientSocket,
+    CreatePlayerRequest,
+    CreatePlayerResponse, EntitiesUpdate,
+    Message,
+    MessageType,
+    PlayerMovementRequest,
+    TimestampMs
+} from "@/core/model/protocol";
+import {updatePlayerIntent, updateEntityPosition} from "@/core/map";
+import {setsAreEqual} from "@/core/util";
 
 export default class MapClient {
     player?: Player
     entities: Map<string, MapEntity> = new Map([])
     map?: GameMap
     socket: ClientSocket
+    lastPlayerIntent: KeyBindings = new Set()
 
     defaultSpriteSheet: string
 
     constructor(socket: ClientSocket, defaultSpriteSheet: string) {
         this.socket = socket
         this.defaultSpriteSheet = defaultSpriteSheet
+        this.handleMessage = this.handleMessage.bind(this) // necessary for callback
     }
 
     public init(ldtk: LdtkRoot) {
+        this.socket.onMessage(this.handleMessage)
         this.initMap(ldtk)
         this.initPlayer()
     }
 
-    private initMap(ldtk: LdtkRoot) {
-        this.map = {
-            id: 'demo_map', // TODO
-            tileWidth: 32, // TODO load from LDTK
-            tileHeight: 32, // TODO load from LDTK
-            width: 24, // TODO load from LDTK
-            height: 16, // TODO load from LDTK
-            walkable: ldtk.level(0).layer('collision').intGridCsv.map((row) => {
-                return row.map((tile) => tile == 1)
-            })
+    public handleMessage(message: Message) {
+        switch (message.type) {
+            case MessageType.ENTITIES_UPDATE:
+                return this.handleEntitiesUpdate(message as EntitiesUpdate)
+            default:
+                console.error(`Incoming message with unknown type (${message.type}):`, message)
         }
-        this.addEntity({
-            entityId: 'npc_client-girl',
-            charset: new Charset(this.defaultSpriteSheet, 1),
-            mapPosition: gridMapPos(this.map!, 3, 4),
-            speed: {x: 0, y: 0},
-            facing: CardinalDirection.DOWN,
-        })
-        this.addEntity({
-            entityId: 'npc_client-boy',
-            charset: new Charset(this.defaultSpriteSheet, 3),
-            mapPosition: gridMapPos(this.map!, 2, 4),
-            speed: {x: 0, y: 0},
-            facing: CardinalDirection.DOWN,
-        })
-        this.addEntity({
-            entityId: 'npc_receptionist',
-            charset: new Charset(this.defaultSpriteSheet, 2),
-            mapPosition: gridMapPos(this.map!, 9, 8),
-            speed: {x: 0, y: 0},
-            facing: CardinalDirection.UP,
-        })
+    }
+
+    private handleEntitiesUpdate(msg: EntitiesUpdate) {
+        this.entities.clear()
+        for (const ent of msg.entities) {
+            this.entities.set(ent.entityId, ent)
+        }
+        // TODO compare timestamps and move entities
+    }
+
+    private initMap(ldtk: LdtkRoot) {
+        this.map = ldtk.level(0).toGameMap('demo.ldtk') // TODO
+        // TODO add entities back in
+        // this.addEntity({
+        //     entityId: 'npc_client-girl',
+        //     charset: new Charset(this.defaultSpriteSheet, 1),
+        //     mapPosition: gridMapPos(this.map!, 3, 4),
+        //     speed: {x: 0, y: 0},
+        //     facing: CardinalDirection.DOWN,
+        // })
+        // this.addEntity({
+        //     entityId: 'npc_client-boy',
+        //     charset: new Charset(this.defaultSpriteSheet, 3),
+        //     mapPosition: gridMapPos(this.map!, 2, 4),
+        //     speed: {x: 0, y: 0},
+        //     facing: CardinalDirection.DOWN,
+        // })
+        // this.addEntity({
+        //     entityId: 'npc_receptionist',
+        //     charset: new Charset(this.defaultSpriteSheet, 2),
+        //     mapPosition: gridMapPos(this.map!, 9, 8),
+        //     speed: {x: 0, y: 0},
+        //     facing: CardinalDirection.UP,
+        // })
     }
 
     private getTimestamp(): TimestampMs {
@@ -89,13 +111,19 @@ export default class MapClient {
     public updatePlayerMoveKeys(keys: KeyBindings) {
         const player = this.player
         if (!player) return
-        // TODO send keys to server
-        player.speed = playerMoveKeysToXYSpeed(keys)
-        player.facing = getXYDir(player.speed) || player.facing
+        if (setsAreEqual(keys, this.lastPlayerIntent)) return
+        this.socket.request({
+            type: MessageType.PLAYER_MOVEMENT,
+            timestamp: this.getTimestamp(),
+            moveKeys: Array.from(keys.keys()),
+            username: player.username,
+        } as PlayerMovementRequest)
+        updatePlayerIntent(player, keys)
+        this.lastPlayerIntent = keys
     }
 
     public updateLogic(deltaMs: number) {
-        this.updateReceptionist()
+        // this.updateReceptionist()
         this.updateEntityPositions(deltaMs)
     }
 
@@ -113,39 +141,7 @@ export default class MapClient {
 
     private updateEntityPositions(deltaMs: number) {
         for (const ent of Array.from(this.entities.values())) {
-            this.updateEntityPosition(ent, deltaMs)
-        }
-    }
-
-    private updateEntityPosition(ent: MapEntity, deltaMs: number) {
-        const th = this.map!.tileHeight
-        const tw = this.map!.tileWidth
-        const targetPx = {
-            x: ent.mapPosition.x + ent.speed.x * deltaMs,
-            y: ent.mapPosition.y + ent.speed.y * deltaMs,
-        }
-        const targetTile = {
-            x: Math.floor(targetPx.x / tw),
-            y: Math.floor(targetPx.y / th),
-        }
-        // TODO handle multiple tiles
-        if (this.map!.walkable![targetTile.y][targetTile.x]) {
-            ent.mapPosition.x = targetPx.x
-            ent.mapPosition.y = targetPx.y
-            if (!this.map!.walkable![targetTile.y][targetTile.x - 1]) {
-                ent.mapPosition.x = Math.max(ent.mapPosition.x, targetTile.x * tw + 0.5 * tw)
-            }
-            if (!this.map!.walkable![targetTile.y][targetTile.x + 1]) {
-                ent.mapPosition.x = Math.min(ent.mapPosition.x, targetTile.x * tw + 0.5 * tw)
-            }
-            if (!this.map!.walkable![targetTile.y - 1][targetTile.x]) {
-                ent.mapPosition.y = Math.max(ent.mapPosition.y, targetTile.y * th + 0.25 * th)
-            }
-            if (!this.map!.walkable![targetTile.y + 1][targetTile.x]) {
-                ent.mapPosition.y = Math.min(ent.mapPosition.y, targetTile.y * th + 0.75 * th)
-            }
-        } else {
-            // TODO walk closest possible
+            updateEntityPosition(this.map!, ent, deltaMs)
         }
     }
 }

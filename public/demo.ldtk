@@ -17,31 +17,31 @@
 		"identifier": "Spawnpoint",
 		"instances": [
 			{
-				"worldIid": "e361f1a0-9f30-11ed-b6f3-f3ccb1a53bad",
+				"worldIid": "ec587520-9f30-11ed-b95c-c3a4da769060",
 				"levelIid": "7aad9b12-9f30-11ed-a0d8-8dae11cdf580",
 				"layerIid": "433d5c60-9f30-11ed-a0d8-f5564063de1c",
 				"entityIid": "48b756a0-9f30-11ed-a0d8-eb179ef7752e"
 			},
 			{
-				"worldIid": "e361f1a0-9f30-11ed-b6f3-f3ccb1a53bad",
+				"worldIid": "ec587520-9f30-11ed-b95c-c3a4da769060",
 				"levelIid": "7aad9b12-9f30-11ed-a0d8-8dae11cdf580",
 				"layerIid": "433d5c60-9f30-11ed-a0d8-f5564063de1c",
 				"entityIid": "4bb41be0-9f30-11ed-a0d8-e7aad18c287e"
 			},
 			{
-				"worldIid": "e361f1a0-9f30-11ed-b6f3-f3ccb1a53bad",
+				"worldIid": "ec587520-9f30-11ed-b95c-c3a4da769060",
 				"levelIid": "7aad9b12-9f30-11ed-a0d8-8dae11cdf580",
 				"layerIid": "433d5c60-9f30-11ed-a0d8-f5564063de1c",
 				"entityIid": "4fb558d0-9f30-11ed-a0d8-892d68410314"
 			},
 			{
-				"worldIid": "e361f1a0-9f30-11ed-b6f3-f3ccb1a53bad",
+				"worldIid": "ec587520-9f30-11ed-b95c-c3a4da769060",
 				"levelIid": "7aad9b12-9f30-11ed-a0d8-8dae11cdf580",
 				"layerIid": "433d5c60-9f30-11ed-a0d8-f5564063de1c",
 				"entityIid": "56d9f5d0-9f30-11ed-a0d8-7dc4ad0ebf6c"
 			},
 			{
-				"worldIid": "e361f1a0-9f30-11ed-b6f3-f3ccb1a53bad",
+				"worldIid": "ec587520-9f30-11ed-b95c-c3a4da769060",
 				"levelIid": "7aad9b12-9f30-11ed-a0d8-8dae11cdf580",
 				"layerIid": "433d5c60-9f30-11ed-a0d8-f5564063de1c",
 				"entityIid": "58d15900-9f30-11ed-a0d8-01a7afeb0d2b"
@@ -55,7 +55,7 @@
 	"defaultLevelHeight": 256,
 	"defaultPivotX": 0,
 	"defaultPivotY": 0,
-	"defaultGridSize": 16,
+	"defaultGridSize": 32,
 	"bgColor": "#40465B",
 	"defaultLevelBgColor": "#696A79",
 	"minifyJson": false,

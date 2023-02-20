@@ -1,4 +1,9 @@
-import {ClientSocket as IClientSocket, Request as PRequest, Response as PResponse} from "@/core/model/protocol";
+import {
+    ClientSocket as IClientSocket,
+    Message,
+    Request as PRequest,
+    Response as PResponse
+} from "@/core/model/protocol";
 import {io, Socket} from "socket.io-client";
 
 export class ClientSocket implements IClientSocket {
@@ -17,11 +22,12 @@ export class ClientSocket implements IClientSocket {
         socket.on("connect", () => {
             this.connected = true
         });
-        socket.on("message", (message: PResponse) => {
-            // TODO
-        });
         // TODO disconnect socket when done
         return socket
+    }
+
+    public onMessage(callback: (message: Message) => void) {
+        this.socket.on('message', callback)
     }
 
     request(req: PRequest): Promise<PResponse> {

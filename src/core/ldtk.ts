@@ -1,4 +1,5 @@
 import {arrayToMatrix} from "@/core/util";
+import {GameMap} from "@/core/model/map";
 
 class LDTK {
     json: any
@@ -19,6 +20,19 @@ export class LdtkLevel extends LDTK {
         const matchesKey = (l: any) => l['__identifier'].toLowerCase() == name
         const branch = this.json['layerInstances'].find(matchesKey)
         return new LdtkLayerInstance(branch)
+    }
+
+    public toGameMap(mapId: string): GameMap {
+        return {
+            id: mapId,
+            tileWidth: 32, // TODO
+            tileHeight: 32, // TODO
+            width: 24, // TODO
+            height: 16, // TODO
+            walkable: this.layer('collision').intGridCsv.map((row) => {
+                return row.map((tile) => tile == 1)
+            })
+        }
     }
 }
 
