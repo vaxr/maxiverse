@@ -6,3 +6,16 @@ export function arrayToMatrix<T>(arr: T[], width: number): T[][] {
     }
     return matrix
 }
+
+export function compareSets<T>(a: Set<T>, b: Set<T>): Set<T> {
+    return new Set(
+        Array.from(a).filter(element => !b.has(element))
+    );
+}
+
+export function setsAreEqual<T>(a?: Set<T>, b?: Set<T>): boolean {
+    if (!a) a = new Set([])
+    if (!b) b = new Set([])
+    if (a.size != b.size) return false
+    return compareSets(a, b).size === 0
+}
