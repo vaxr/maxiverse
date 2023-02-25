@@ -13,7 +13,8 @@ import {
 } from "@/core/model/protocol";
 import {updateEntityPosition, updatePlayerIntent} from "@/core/map";
 import {setsAreEqual} from "@/core/util/util";
-import {Clock} from "@/core/util/clock";
+import {Clock, SystemClock} from "@/core/util/clock";
+import container from "@/di";
 
 export default class MapClient {
     clock: Clock
@@ -25,8 +26,8 @@ export default class MapClient {
 
     defaultSpriteSheet: string
 
-    constructor(socket: ClientSocket, defaultSpriteSheet: string, clock: Clock) {
-        this.clock = clock
+    constructor(socket: ClientSocket, defaultSpriteSheet: string) {
+        this.clock = container.get<Clock>(SystemClock);
         this.socket = socket
         this.defaultSpriteSheet = defaultSpriteSheet
         this.handleMessage = this.handleMessage.bind(this) // necessary for callback

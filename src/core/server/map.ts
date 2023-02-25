@@ -14,7 +14,8 @@ import {
 import {readFileSync} from "fs";
 import {LdtkRoot} from "@/core/ldtk";
 import {updateEntityPosition, updatePlayerIntent} from "@/core/map";
-import {Clock} from "@/core/util/clock";
+import {Clock, SystemClock} from "@/core/util/clock";
+import container from "@/di";
 
 export default class MapServer {
 
@@ -27,8 +28,8 @@ export default class MapServer {
     entities: Map<string, Map<string, MapEntity>> = new Map([])
     lastUpdateMs: TimestampMs = 0
 
-    constructor(socket: ServerSocket, clock: Clock) {
-        this.clock = clock;
+    constructor(socket: ServerSocket) {
+        this.clock = container.get<Clock>(SystemClock);
         this.socket = socket;
     }
 

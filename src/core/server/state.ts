@@ -1,7 +1,6 @@
 import MapServer from "@/core/server/map";
 import {ServerSocket} from "@/core/server/socket";
 import {Server as SocketIOServer} from "socket.io";
-import {SystemClock} from "@/core/util/clock";
 
 /**
  * One rare case where a singleton is appropriate: Keeping global server state
@@ -22,7 +21,7 @@ export class ServerState {
     private constructor(io: SocketIOServer) {
         console.log("Creating ServerState ...")
         const serverSocket = new ServerSocket(io)
-        this.mapServer = new MapServer(serverSocket, new SystemClock())
+        this.mapServer = new MapServer(serverSocket)
         this.mapServer.init()
         this.io = io
         this.initSocket()
