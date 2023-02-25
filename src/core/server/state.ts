@@ -16,12 +16,23 @@ export class ServerState {
     }
 
     mapServer: MapServer
+    io: SocketIOServer
 
     private constructor(io: SocketIOServer) {
-        console.log("New Socket.io server ...");
-        console.log("Creating map server ...")
+        console.log("Creating ServerState ...")
         const serverSocket = new ServerSocket(io)
         this.mapServer = new MapServer(serverSocket)
         this.mapServer.init()
+        this.io = io
+        this.initSocket()
+    }
+
+    private initSocket() {
+        this.io.on('connection', (socket) => {
+            console.log('CONNECT: ', socket.id)
+            socket.on('disconnect', () => {
+                console.log('DISCONNECT: ', socket.id)
+            })
+        })
     }
 }
