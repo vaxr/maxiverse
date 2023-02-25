@@ -1,4 +1,4 @@
-import {arrayToMatrix} from "@/core/util";
+import {arrayToMatrix} from "@/core/util/util";
 import {GameMap} from "@/core/model/map";
 
 class LDTK {

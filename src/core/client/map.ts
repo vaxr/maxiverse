@@ -1,20 +1,22 @@
-import {CardinalDirection, Charset, GameMap, getXYDir, gridMapPos, MapEntity} from "@/core/model/map";
+import {GameMap, MapEntity} from "@/core/model/map";
 import {Player} from "@/core/model/player";
 import {KeyBindings} from "@/core/model/input";
 import {LdtkRoot} from "@/core/ldtk";
 import {
     ClientSocket,
     CreatePlayerRequest,
-    CreatePlayerResponse, EntitiesUpdate,
+    CreatePlayerResponse,
+    EntitiesUpdate,
     Message,
     MessageType,
-    PlayerMovementRequest,
-    TimestampMs
+    PlayerMovementRequest
 } from "@/core/model/protocol";
-import {updatePlayerIntent, updateEntityPosition} from "@/core/map";
-import {setsAreEqual} from "@/core/util";
+import {updateEntityPosition, updatePlayerIntent} from "@/core/map";
+import {setsAreEqual} from "@/core/util/util";
+import {Clock} from "@/core/util/clock";
 
 export default class MapClient {
+    clock: Clock
     player?: Player
     entities: Map<string, MapEntity> = new Map([])
     map?: GameMap
@@ -23,7 +25,8 @@ export default class MapClient {
 
     defaultSpriteSheet: string
 
-    constructor(socket: ClientSocket, defaultSpriteSheet: string) {
+    constructor(socket: ClientSocket, defaultSpriteSheet: string, clock: Clock) {
+        this.clock = clock
         this.socket = socket
         this.defaultSpriteSheet = defaultSpriteSheet
         this.handleMessage = this.handleMessage.bind(this) // necessary for callback
@@ -56,16 +59,11 @@ export default class MapClient {
         this.map = ldtk.level(0).toGameMap('demo.ldtk') // TODO
     }
 
-    private getTimestamp(): TimestampMs {
-        // TODO Use NTP
-        return new Date().getTime()
-    }
-
     private initPlayer() {
         const username = "Max" + `${Math.random()}`.substr(-6);
         this.socket.request({
             type: MessageType.CREATE_PLAYER,
-            timestamp: this.getTimestamp(),
+            timestamp: this.clock.getTimestampMs(),
             username,
         } as CreatePlayerRequest).then((res: CreatePlayerResponse) => {
             if (res.error) {
@@ -87,7 +85,7 @@ export default class MapClient {
         if (setsAreEqual(keys, this.lastPlayerIntent)) return
         this.socket.request({
             type: MessageType.PLAYER_MOVEMENT,
-            timestamp: this.getTimestamp(),
+            timestamp: this.clock.getTimestampMs(),
             moveKeys: Array.from(keys.keys()),
             username: player.username,
         } as PlayerMovementRequest)

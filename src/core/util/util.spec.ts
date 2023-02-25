@@ -1,4 +1,4 @@
-import {setsAreEqual} from "@/core/util";
+import {setsAreEqual} from "@/core/util/util";
 describe('core/util', () => {
     describe('setsAreEqual', () => {
         for (const tc of [

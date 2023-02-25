@@ -7,11 +7,12 @@ import MapClient from "@/core/client/map";
 import {ClientSocket} from "@/core/client/socket";
 import Sprite = Phaser.GameObjects.Sprite;
 import Map = Phaser.Structs.Map;
+import {SystemClock} from "@/core/util/clock";
 
 
 export default class MapScene extends Scene {
 
-    client: MapClient = new MapClient(new ClientSocket, MapScene.SpriteSheets[0])
+    client: MapClient = new MapClient(new ClientSocket, MapScene.SpriteSheets[0], new SystemClock())
     keymap: KeyMapper = new KeyMapper(this)
     sprites: Map<string, Sprite> = new Map([])
 

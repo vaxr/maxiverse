@@ -14,29 +14,27 @@ import {
 import {readFileSync} from "fs";
 import {LdtkRoot} from "@/core/ldtk";
 import {updateEntityPosition, updatePlayerIntent} from "@/core/map";
+import {Clock} from "@/core/util/clock";
 
 export default class MapServer {
 
     static DefaultSpriteSheet = 'assets/stock/modern-tiles/char.png' // TODO
 
+    clock: Clock
     socket: ServerSocket
     players: Map<string, Player> = new Map([])
     maps: Map<string, GameMap> = new Map([])
     entities: Map<string, Map<string, MapEntity>> = new Map([])
     lastUpdateMs: TimestampMs = 0
 
-    constructor(socket: ServerSocket) {
+    constructor(socket: ServerSocket, clock: Clock) {
+        this.clock = clock;
         this.socket = socket;
     }
 
     public init() {
         this.loadMap('demo.ldtk')
-        this.lastUpdateMs = this.getTimestamp()
-    }
-
-    private getTimestamp(): TimestampMs {
-        // TODO Use NTP
-        return new Date().getTime()
+        this.lastUpdateMs = this.clock.getTimestampMs()
     }
 
     private loadMap(path: string) {
@@ -76,7 +74,7 @@ export default class MapServer {
             request,
             type: request.type,
             error: null,
-            timestamp: this.getTimestamp(),
+            timestamp: this.clock.getTimestampMs(),
         }
     }
 
@@ -144,7 +142,7 @@ export default class MapServer {
     }
 
     private updateEntityPositions(mapId: string) {
-        const now = this.getTimestamp()
+        const now = this.clock.getTimestampMs()
         const delta = now - this.lastUpdateMs
         const map = this.maps.get(mapId)!
         const entities = this.entities.get(mapId)!
@@ -176,7 +174,7 @@ export default class MapServer {
     private emitEntities(entities: MapEntity[]) {
         this.socket.broadcast({
             type: MessageType.ENTITIES_UPDATE,
-            timestamp: this.getTimestamp(),
+            timestamp: this.clock.getTimestampMs(),
             entities: Array.from(entities.values())
         } as EntitiesUpdate)
     }
